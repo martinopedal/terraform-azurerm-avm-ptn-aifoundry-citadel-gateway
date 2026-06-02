@@ -299,6 +299,30 @@ module "apim_gateway" {
   ]
 }
 
+# ============================================================================
+# RBAC: APIM Managed Identity → AOAI + EventHub (Citadel data-plane access)
+# ============================================================================
+
+# RBAC: APIM SAMI → Cognitive Services OpenAI User on all AI Foundry endpoints
+# Role ID: a97b65f3-2c7c-4a6c-a491-4d188b92e1ab (data-plane role, no condition required per ALZ rules)
+resource "azurerm_role_assignment" "apim_to_aoai" {
+  for_each = module.foundry.foundry_ids
+
+  scope                = each.value
+  role_definition_name = "Cognitive Services OpenAI User"
+  principal_id         = module.identities.apim_identity_principal_id
+  principal_type       = "ServicePrincipal"
+}
+
+# RBAC: APIM SAMI → EventHubs Data Sender on namespace
+# Role ID: 2b629674-e913-4c01-ae53-ef4638d8f975 (data-plane role, no condition required per ALZ rules)
+resource "azurerm_role_assignment" "apim_to_eventhub" {
+  scope                = module.eventhub.eventhub_namespace_id
+  role_definition_name = "Azure Event Hubs Data Sender"
+  principal_id         = module.identities.apim_identity_principal_id
+  principal_type       = "ServicePrincipal"
+}
+
 # Logic App (Usage Ingestion - Consumption tier with Cosmos RBAC)
 module "logic_app" {
   source = "./modules/logic-app"
@@ -317,4 +341,22 @@ module "logic_app" {
 # PHASE 4: Advanced Features (Redis, API Center)
 # ============================================================================
 
-# Placeholder: Redis Cache, API Center will be added in Phase 4
+# Managed Redis (optional semantic caching for APIM)
+module "redis" {
+  count  = var.enable_managed_redis ? 1 : 0
+  source = "./modules/redis"
+
+  name                       = var.redis_cache_name != "" ? var.redis_cache_name : "redis-${local.resource_token}"
+  sku_name                   = var.redis_sku_name
+  sku_capacity               = var.redis_sku_capacity
+  minimum_tls_version        = var.redis_minimum_tls_version
+  enable_private_endpoint    = var.enable_private_endpoints
+  private_endpoint_name      = "pe-redis-${local.resource_token}"
+  private_endpoint_subnet_id = module.networking.private_endpoint_subnet_id
+  redis_private_dns_zone_id  = "" # Redis DNS zone provisioned by networking module if enable_private_endpoints=true
+
+  location            = var.location
+  resource_group_name = azurerm_resource_group.this.name
+  resource_group_id   = azurerm_resource_group.this.id
+  tags                = local.tags
+}
