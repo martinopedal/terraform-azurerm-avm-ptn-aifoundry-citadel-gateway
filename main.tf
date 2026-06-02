@@ -214,7 +214,63 @@ module "function" {
   tags                = local.tags
 }
 
-# Logic App (Usage Ingestion) - stub for Phase 3 validation
+# Event Hub Namespace
+module "eventhub" {
+  source = "./modules/eventhub"
+
+  namespace_name                   = var.event_hub_namespace_name != "" ? var.event_hub_namespace_name : "evhns-${local.resource_token}"
+  sku                              = var.event_hub_sku
+  capacity                         = var.event_hub_capacity_units
+  auto_inflate_enabled             = var.event_hub_auto_inflate_enabled
+  maximum_throughput_units         = var.event_hub_maximum_throughput_units
+  zone_redundant                   = var.enable_zone_redundancy
+  public_network_access_enabled    = !var.enable_private_endpoints
+  disable_local_auth               = var.disable_local_auth
+  usage_hub_name                   = var.usage_event_hub_name
+  pii_hub_name                     = var.pii_event_hub_name
+  enable_private_endpoints         = var.enable_private_endpoints
+  private_endpoint_name            = "pe-eventhub-${local.resource_token}"
+  private_endpoint_subnet_id       = module.networking.private_endpoint_subnet_id
+  eventhub_private_dns_zone_id     = var.existing_private_dns_zones.event_hub
+
+  location            = var.location
+  resource_group_name = azurerm_resource_group.this.name
+  tags                = local.tags
+}
+
+# API Management
+module "apim" {
+  source = "./modules/apim"
+
+  apim_name                        = var.apim_service_name != "" ? var.apim_service_name : "apim-${local.resource_token}"
+  apim_sku                         = "${var.apim_sku}_${var.apim_sku_units}"
+  apim_publisher_name              = "AI Foundry Citadel"
+  apim_publisher_email             = "noreply@contoso.com"
+  apim_network_type                = var.apim_network_type
+  apim_subnet_id                   = module.networking.apim_subnet_id
+  apim_managed_identity_id         = module.identities.apim_identity_id
+  is_apim_v2_sku                   = local.is_apim_v2_sku
+  enable_private_endpoints         = var.enable_private_endpoints && local.is_apim_v2_sku
+  apim_private_endpoint_name       = "pe-apim-${local.resource_token}"
+  apim_private_dns_zone_id         = var.existing_private_dns_zones.apim_gateway
+  private_endpoint_subnet_id       = module.networking.private_endpoint_subnet_id
+  event_hub_name                   = module.eventhub.usage_hub_name
+  event_hub_connection_string      = module.eventhub.apim_connection_string
+  app_insights_instrumentation_key = module.monitoring.apim_app_insights_instrumentation_key
+  tenant_id                        = data.azurerm_client_config.current.tenant_id
+  audience                         = "https://cognitiveservices.azure.com/.default"
+
+  location            = var.location
+  resource_group_name = azurerm_resource_group.this.name
+  tags                = local.tags
+  enable_telemetry    = var.enable_telemetry
+  
+  depends_on = [
+    module.eventhub
+  ]
+}
+
+# Logic App (Usage Ingestion) - stub for Phase 4 completion
 module "logic_app" {
   source = "./modules/logic-app"
 
@@ -224,10 +280,8 @@ module "logic_app" {
   tags                = local.tags
 }
 
-# APIM - deferred to next iteration (stub only)
-
 # ============================================================================
-# PHASE 4: Usage Ingestion + Redis
+# PHASE 4: Advanced Features (Redis, API Center)
 # ============================================================================
 
-# Placeholder: Modules will be added in Phase 4
+# Placeholder: Redis Cache, API Center will be added in Phase 4

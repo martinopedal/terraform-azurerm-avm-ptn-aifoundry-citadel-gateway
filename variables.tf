@@ -723,3 +723,24 @@ variable "usage_logic_app_name" {
   description = "Usage ingestion Logic App name (alias for usage_processing_logic_app_name)"
   default     = ""
 }
+
+
+
+
+variable "event_hub_maximum_throughput_units" {
+  type        = number
+  description = "Maximum throughput units when auto-inflate is enabled (Standard SKU only)."
+  default     = 1
+}
+
+variable "usage_event_hub_name" {
+  type        = string
+  description = "Name of the Event Hub for usage tracking (ingestion from APIM)."
+  default     = "usage"
+}
+
+variable "pii_event_hub_name" {
+  type        = string
+  description = "Name of the Event Hub for PII tracking (anonymization pipeline)."
+  default     = "pii"
+}
