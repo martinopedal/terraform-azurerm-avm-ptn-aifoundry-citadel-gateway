@@ -128,6 +128,7 @@ module "foundry" {
   source = "./modules/foundry"
 
   foundry_instances                       = var.ai_foundry_instances
+  model_deployments                       = var.ai_foundry_models_config
   foundry_public_network_access_enabled   = var.ai_foundry_external_network_access == "Enabled"
   disable_local_auth                      = var.disable_local_auth
   foundry_private_dns_zone_ids            = compact([
@@ -270,11 +271,15 @@ module "apim" {
   ]
 }
 
-# Logic App (Usage Ingestion) - stub for Phase 4 completion
+# Logic App (Usage Ingestion - Consumption tier with Cosmos RBAC)
 module "logic_app" {
   source = "./modules/logic-app"
 
-  logic_app_name      = var.usage_logic_app_name != "" ? var.usage_logic_app_name : "logic-${local.resource_token}"
+  logic_app_name         = var.usage_logic_app_name != "" ? var.usage_logic_app_name : "logic-${local.resource_token}"
+  cosmos_account_name    = module.cosmos.cosmos_account_name
+  cosmos_account_id      = module.cosmos.cosmos_account_id
+  eventhub_namespace_id  = module.eventhub.eventhub_namespace_id
+  
   location            = var.location
   resource_group_name = azurerm_resource_group.this.name
   tags                = local.tags

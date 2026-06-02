@@ -1,5 +1,4 @@
 # AI Foundry (Cognitive Services) - using AzAPI for precise control
-# Simplified for Phase 2 validation - full model deployments in Phase 3
 resource "azapi_resource" "foundry" {
   for_each  = { for idx, config in var.foundry_instances : idx => config }
   type      = "Microsoft.CognitiveServices/accounts@2024-10-01"
@@ -18,6 +17,31 @@ resource "azapi_resource" "foundry" {
   }
   tags = var.tags
 }
+
+# Model deployments
+resource "azapi_resource" "model_deployment" {
+  for_each  = { for idx, model in var.model_deployments : "${model.aiservice_index}-${model.name}" => model }
+  type      = "Microsoft.CognitiveServices/accounts/deployments@2024-10-01"
+  name      = each.value.name
+  parent_id = azapi_resource.foundry[each.value.aiservice_index].id
+
+  body = {
+    sku = {
+      name     = each.value.sku
+      capacity = each.value.capacity
+    }
+    properties = {
+      model = {
+        format  = each.value.publisher
+        name    = each.value.name
+        version = each.value.version
+      }
+    }
+  }
+
+  depends_on = [azapi_resource.foundry]
+}
+
 # Private endpoints for Foundry (3 DNS zones: cognitive, openai, ai-services)
 resource "azurerm_private_endpoint" "foundry" {
   for_each            = var.enable_private_endpoints ? { for idx, config in var.foundry_instances : idx => config } : {}
@@ -40,6 +64,7 @@ resource "azurerm_private_endpoint" "foundry" {
     }
   }
 }
+
 # RBAC: Cognitive Services User for APIM
 resource "azurerm_role_assignment" "foundry_apim_user" {
   for_each             = { for idx, config in var.foundry_instances : idx => config }

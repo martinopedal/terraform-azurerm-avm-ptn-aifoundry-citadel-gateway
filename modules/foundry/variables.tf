@@ -6,6 +6,18 @@ variable "foundry_instances" {
   }))
 }
 
+variable "model_deployments" {
+  type = list(object({
+    name             = string
+    aiservice_index  = number
+    sku              = string
+    capacity         = number
+    publisher        = string
+    version          = string
+  }))
+  default = []
+}
+
 variable "foundry_public_network_access_enabled" {
   type    = bool
   default = false
