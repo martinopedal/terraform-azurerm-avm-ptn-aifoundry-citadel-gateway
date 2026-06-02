@@ -11,11 +11,11 @@ module "log_analytics" {
   name                = var.log_analytics_name
   location            = var.location
   resource_group_name = var.resource_group_name
-  
+
   # cost: PerGB2018 pricing tier, 30-day retention (free)
   log_analytics_workspace_retention_in_days = var.log_analytics_retention_days
   log_analytics_workspace_sku               = "PerGB2018"
-  
+
   tags             = var.tags
   enable_telemetry = var.enable_telemetry
 }
@@ -106,11 +106,11 @@ resource "azurerm_monitor_private_link_scoped_service" "foundry_appinsights" {
 # Portal Dashboards (optional)
 # cost: Dashboards are free
 resource "azurerm_portal_dashboard" "apim" {
-  count                = var.create_dashboards ? 1 : 0
-  name                 = var.apim_dashboard_name
-  resource_group_name  = var.resource_group_name
-  location             = var.location
-  tags                 = var.tags
+  count               = var.create_dashboards ? 1 : 0
+  name                = var.apim_dashboard_name
+  resource_group_name = var.resource_group_name
+  location            = var.location
+  tags                = var.tags
   dashboard_properties = templatefile("${path.module}/dashboard-apim.tftpl", {
     app_insights_id   = azurerm_application_insights.apim.id
     app_insights_name = azurerm_application_insights.apim.name
@@ -120,11 +120,11 @@ resource "azurerm_portal_dashboard" "apim" {
 }
 
 resource "azurerm_portal_dashboard" "function" {
-  count                = var.create_dashboards ? 1 : 0
-  name                 = var.function_dashboard_name
-  resource_group_name  = var.resource_group_name
-  location             = var.location
-  tags                 = var.tags
+  count               = var.create_dashboards ? 1 : 0
+  name                = var.function_dashboard_name
+  resource_group_name = var.resource_group_name
+  location            = var.location
+  tags                = var.tags
   dashboard_properties = templatefile("${path.module}/dashboard-function.tftpl", {
     app_insights_id   = azurerm_application_insights.function.id
     app_insights_name = azurerm_application_insights.function.name
@@ -134,11 +134,11 @@ resource "azurerm_portal_dashboard" "function" {
 }
 
 resource "azurerm_portal_dashboard" "foundry" {
-  count                = var.create_dashboards ? 1 : 0
-  name                 = var.foundry_dashboard_name
-  resource_group_name  = var.resource_group_name
-  location             = var.location
-  tags                 = var.tags
+  count               = var.create_dashboards ? 1 : 0
+  name                = var.foundry_dashboard_name
+  resource_group_name = var.resource_group_name
+  location            = var.location
+  tags                = var.tags
   dashboard_properties = templatefile("${path.module}/dashboard-foundry.tftpl", {
     app_insights_id   = azurerm_application_insights.foundry.id
     app_insights_name = azurerm_application_insights.foundry.name

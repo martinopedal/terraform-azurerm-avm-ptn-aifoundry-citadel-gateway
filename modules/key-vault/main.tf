@@ -7,17 +7,17 @@ module "key_vault" {
   location            = var.location
   resource_group_name = var.resource_group_name
   tenant_id           = data.azurerm_client_config.current.tenant_id
-  
-  sku_name                            = var.key_vault_sku_name
-  enabled_for_deployment              = false
-  enabled_for_disk_encryption         = false
-  enabled_for_template_deployment     = true
-  legacy_access_policies_enabled      = false  # Use RBAC instead
-  purge_protection_enabled            = true
-  soft_delete_retention_days          = 90
-  public_network_access_enabled       = var.key_vault_public_network_access_enabled
-  
-  network_acls = var.key_vault_public_network_access_enabled ? null : { bypass = "AzureServices", default_action = "Deny" }
+
+  sku_name                        = var.key_vault_sku_name
+  enabled_for_deployment          = false
+  enabled_for_disk_encryption     = false
+  enabled_for_template_deployment = true
+  legacy_access_policies_enabled  = false # Use RBAC instead
+  purge_protection_enabled        = true
+  soft_delete_retention_days      = 90
+  public_network_access_enabled   = var.key_vault_public_network_access_enabled
+
+  network_acls     = var.key_vault_public_network_access_enabled ? null : { bypass = "AzureServices", default_action = "Deny" }
   tags             = var.tags
   enable_telemetry = var.enable_telemetry
 }

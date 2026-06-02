@@ -7,7 +7,7 @@ resource "azapi_resource" "foundry" {
   parent_id = var.resource_group_id
   identity { type = "SystemAssigned" }
   body = {
-    sku = { name = "S0" }
+    sku  = { name = "S0" }
     kind = "AIServices"
     properties = {
       customSubDomainName = each.value.custom_sub_domain_name != "" ? each.value.custom_sub_domain_name : null

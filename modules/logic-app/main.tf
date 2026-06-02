@@ -17,7 +17,7 @@ resource "azurerm_logic_app_workflow" "usage_ingestion" {
       type         = "Object"
     })
   }
-  
+
   # NOTE: Full workflow definition with Event Hub trigger + Cosmos action
   # requires API connections. For demo, this creates the workflow shell.
   # Production: use azurerm_api_connection resources for Event Hubs + Cosmos.

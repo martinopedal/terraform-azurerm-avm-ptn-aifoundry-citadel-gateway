@@ -9,16 +9,16 @@ module "apim" {
   publisher_name      = var.apim_publisher_name
   publisher_email     = var.apim_publisher_email
   sku_name            = var.apim_sku
-  
+
   # VNet integration
   virtual_network_type      = var.apim_network_type
   virtual_network_subnet_id = var.apim_network_type != "None" ? var.apim_subnet_id : null
-  
+
   # Managed identity
   managed_identities = {
     user_assigned_resource_ids = [var.apim_managed_identity_id]
   }
-  
+
   tags             = var.tags
   enable_telemetry = var.enable_telemetry
 }
@@ -28,7 +28,7 @@ resource "azurerm_api_management_logger" "eventhub" {
   name                = "eventhub-logger"
   api_management_name = module.apim.name
   resource_group_name = var.resource_group_name
-  
+
   eventhub {
     name              = var.event_hub_name
     connection_string = var.event_hub_connection_string
@@ -40,7 +40,7 @@ resource "azurerm_api_management_logger" "appinsights" {
   name                = "appinsights-logger"
   api_management_name = module.apim.name
   resource_group_name = var.resource_group_name
-  
+
   application_insights {
     instrumentation_key = var.app_insights_instrumentation_key
   }

@@ -32,30 +32,30 @@ resource "azurerm_resource_group" "this" {
 module "networking" {
   source = "./modules/networking"
 
-  create_new_vnet                      = !var.use_existing_vnet
-  vnet_name                            = var.vnet_name != "" ? var.vnet_name : "vnet-${local.resource_token}"
-  vnet_address_prefix                  = var.vnet_address_prefix
-  location                             = var.location
-  resource_group_name                  = azurerm_resource_group.this.name
-  existing_vnet_resource_group_name    = var.existing_vnet_rg
-  tags                                 = local.tags
-  
-  apim_subnet_name             = var.apim_subnet_name != "" ? var.apim_subnet_name : "snet-apim"
-  apim_subnet_prefix           = var.apim_subnet_prefix
-  private_endpoint_subnet_name = var.private_endpoint_subnet_name != "" ? var.private_endpoint_subnet_name : "snet-private-endpoint"
+  create_new_vnet                   = !var.use_existing_vnet
+  vnet_name                         = var.vnet_name != "" ? var.vnet_name : "vnet-${local.resource_token}"
+  vnet_address_prefix               = var.vnet_address_prefix
+  location                          = var.location
+  resource_group_name               = azurerm_resource_group.this.name
+  existing_vnet_resource_group_name = var.existing_vnet_rg
+  tags                              = local.tags
+
+  apim_subnet_name               = var.apim_subnet_name != "" ? var.apim_subnet_name : "snet-apim"
+  apim_subnet_prefix             = var.apim_subnet_prefix
+  private_endpoint_subnet_name   = var.private_endpoint_subnet_name != "" ? var.private_endpoint_subnet_name : "snet-private-endpoint"
   private_endpoint_subnet_prefix = var.private_endpoint_subnet_prefix
-  function_app_subnet_name     = var.function_app_subnet_name != "" ? var.function_app_subnet_name : "snet-functionapp"
-  function_app_subnet_prefix   = var.function_app_subnet_prefix
-  enable_agent_subnet          = var.foundry_network_injection_enabled
-  agent_subnet_name            = var.agent_subnet_name != "" ? var.agent_subnet_name : "snet-agents"
-  agent_subnet_prefix          = var.agent_subnet_prefix
-  
-  apim_nsg_name               = "nsg-apim-${local.resource_token}"
-  private_endpoint_nsg_name   = "nsg-pe-${local.resource_token}"
-  function_app_nsg_name       = "nsg-functionapp-${local.resource_token}"
-  agent_subnet_nsg_name       = "nsg-agents-${local.resource_token}"
-  apim_route_table_name       = "rt-apim-${local.resource_token}"
-  
+  function_app_subnet_name       = var.function_app_subnet_name != "" ? var.function_app_subnet_name : "snet-functionapp"
+  function_app_subnet_prefix     = var.function_app_subnet_prefix
+  enable_agent_subnet            = var.foundry_network_injection_enabled
+  agent_subnet_name              = var.agent_subnet_name != "" ? var.agent_subnet_name : "snet-agents"
+  agent_subnet_prefix            = var.agent_subnet_prefix
+
+  apim_nsg_name             = "nsg-apim-${local.resource_token}"
+  private_endpoint_nsg_name = "nsg-pe-${local.resource_token}"
+  function_app_nsg_name     = "nsg-functionapp-${local.resource_token}"
+  agent_subnet_nsg_name     = "nsg-agents-${local.resource_token}"
+  apim_route_table_name     = "rt-apim-${local.resource_token}"
+
   is_apim_v2_sku         = local.is_apim_v2_sku
   private_dns_zone_names = local.private_dns_zones
   enable_telemetry       = var.enable_telemetry
@@ -65,38 +65,38 @@ module "networking" {
 module "identities" {
   source = "./modules/identities"
 
-  apim_identity_name    = var.apim_identity_name != "" ? var.apim_identity_name : "id-apim-${local.resource_token}"
-  usage_identity_name   = var.usage_logic_app_identity_name != "" ? var.usage_logic_app_identity_name : "id-logicapp-${local.resource_token}"
-  location              = var.location
-  resource_group_name   = azurerm_resource_group.this.name
-  resource_group_id     = azurerm_resource_group.this.id
-  tags                  = local.tags
+  apim_identity_name  = var.apim_identity_name != "" ? var.apim_identity_name : "id-apim-${local.resource_token}"
+  usage_identity_name = var.usage_logic_app_identity_name != "" ? var.usage_logic_app_identity_name : "id-logicapp-${local.resource_token}"
+  location            = var.location
+  resource_group_name = azurerm_resource_group.this.name
+  resource_group_id   = azurerm_resource_group.this.id
+  tags                = local.tags
 }
 
 # Monitoring
 module "monitoring" {
   source = "./modules/monitoring"
 
-  log_analytics_name              = var.log_analytics_name != "" ? var.log_analytics_name : "law-${local.resource_token}"
-  use_existing_log_analytics      = var.use_existing_log_analytics
-  existing_log_analytics_name     = var.existing_log_analytics_name
-  existing_log_analytics_rg       = var.existing_log_analytics_rg
-  log_analytics_retention_days    = var.log_analytics_retention_days
-  
+  log_analytics_name           = var.log_analytics_name != "" ? var.log_analytics_name : "law-${local.resource_token}"
+  use_existing_log_analytics   = var.use_existing_log_analytics
+  existing_log_analytics_name  = var.existing_log_analytics_name
+  existing_log_analytics_rg    = var.existing_log_analytics_rg
+  log_analytics_retention_days = var.log_analytics_retention_days
+
   apim_app_insights_name     = "appi-apim-${local.resource_token}"
   function_app_insights_name = "appi-func-${local.resource_token}"
   foundry_app_insights_name  = "appi-foundry-${local.resource_token}"
-  
+
   apim_dashboard_name     = "dash-apim-${local.resource_token}"
   function_dashboard_name = "dash-func-${local.resource_token}"
   foundry_dashboard_name  = "dash-foundry-${local.resource_token}"
-  
+
   create_dashboards                    = var.create_app_insights_dashboards
   use_azure_monitor_private_link_scope = var.use_azure_monitor_private_link_scope
   enable_private_endpoints             = var.enable_private_endpoints
   private_endpoint_subnet_id           = module.networking.private_endpoint_subnet_id
   monitor_private_dns_zone_id          = var.existing_private_dns_zones.monitor
-  
+
   location            = var.location
   resource_group_name = azurerm_resource_group.this.name
   tags                = local.tags
@@ -116,7 +116,7 @@ module "key_vault" {
   private_endpoint_subnet_id              = module.networking.private_endpoint_subnet_id
   apim_principal_id                       = module.identities.apim_identity_principal_id
   entra_client_secret                     = var.entra_client_secret
-  
+
   location            = var.location
   resource_group_name = azurerm_resource_group.this.name
   tags                = local.tags
@@ -127,20 +127,20 @@ module "key_vault" {
 module "foundry" {
   source = "./modules/foundry"
 
-  foundry_instances                       = var.ai_foundry_instances
-  model_deployments                       = var.ai_foundry_models_config
-  foundry_public_network_access_enabled   = var.ai_foundry_external_network_access == "Enabled"
-  disable_local_auth                      = var.disable_local_auth
-  foundry_private_dns_zone_ids            = compact([
+  foundry_instances                     = var.ai_foundry_instances
+  model_deployments                     = var.ai_foundry_models_config
+  foundry_public_network_access_enabled = var.ai_foundry_external_network_access == "Enabled"
+  disable_local_auth                    = var.disable_local_auth
+  foundry_private_dns_zone_ids = compact([
     var.existing_private_dns_zones.cognitive_services,
     var.existing_private_dns_zones.openai,
     var.existing_private_dns_zones.ai_services
   ])
-  enable_private_endpoints  = var.enable_private_endpoints
+  enable_private_endpoints   = var.enable_private_endpoints
   private_endpoint_subnet_id = module.networking.private_endpoint_subnet_id
-  apim_principal_id         = module.identities.apim_identity_principal_id
-  resource_token            = local.resource_token
-  
+  apim_principal_id          = module.identities.apim_identity_principal_id
+  resource_token             = local.resource_token
+
   location            = var.location
   resource_group_name = azurerm_resource_group.this.name
   resource_group_id   = azurerm_resource_group.this.id
@@ -151,19 +151,19 @@ module "foundry" {
 module "cosmos" {
   source = "./modules/cosmos"
 
-  cosmos_account_name                     = var.cosmos_db_account_name != "" ? var.cosmos_db_account_name : "cosmos-${local.resource_token}"
-  cosmos_capacity_mode                    = var.cosmos_capacity_mode
-  cosmos_public_network_access_enabled    = var.cosmos_db_public_access == "Enabled"
-  database_name                           = "ai-usage-db"
-  container_name_usage                    = "ai-usage-container"
-  container_name_pii                      = "pii-usage-container"
-  container_name_llm                      = "llm-usage-container"
-  throughput                              = var.cosmos_db_rus
-  cosmos_private_endpoint_name            = "pe-cosmos-${local.resource_token}"
-  cosmos_private_dns_zone_id              = var.existing_private_dns_zones.cosmos_db
-  enable_private_endpoints                = var.enable_private_endpoints
-  private_endpoint_subnet_id              = module.networking.private_endpoint_subnet_id
-  
+  cosmos_account_name                  = var.cosmos_db_account_name != "" ? var.cosmos_db_account_name : "cosmos-${local.resource_token}"
+  cosmos_capacity_mode                 = var.cosmos_capacity_mode
+  cosmos_public_network_access_enabled = var.cosmos_db_public_access == "Enabled"
+  database_name                        = "ai-usage-db"
+  container_name_usage                 = "ai-usage-container"
+  container_name_pii                   = "pii-usage-container"
+  container_name_llm                   = "llm-usage-container"
+  throughput                           = var.cosmos_db_rus
+  cosmos_private_endpoint_name         = "pe-cosmos-${local.resource_token}"
+  cosmos_private_dns_zone_id           = var.existing_private_dns_zones.cosmos_db
+  enable_private_endpoints             = var.enable_private_endpoints
+  private_endpoint_subnet_id           = module.networking.private_endpoint_subnet_id
+
   location            = var.location
   resource_group_name = azurerm_resource_group.this.name
   tags                = local.tags
@@ -178,14 +178,14 @@ module "cosmos" {
 module "storage" {
   source = "./modules/storage"
 
-  storage_account_name              = var.storage_account_name != "" ? var.storage_account_name : "st${replace(local.resource_token, "-", "")}"
-  account_replication_type          = var.storage_account_replication_type
-  public_network_access_enabled     = var.storage_account_public_access == "Enabled"
-  enable_private_endpoints          = var.enable_private_endpoints
-  private_endpoint_subnet_id        = module.networking.private_endpoint_subnet_id
-  storage_blob_private_dns_zone_id  = var.existing_private_dns_zones.storage_blob
-  storage_file_private_dns_zone_id  = var.existing_private_dns_zones.storage_file
-  
+  storage_account_name             = var.storage_account_name != "" ? var.storage_account_name : "st${replace(local.resource_token, "-", "")}"
+  account_replication_type         = var.storage_account_replication_type
+  public_network_access_enabled    = var.storage_account_public_access == "Enabled"
+  enable_private_endpoints         = var.enable_private_endpoints
+  private_endpoint_subnet_id       = module.networking.private_endpoint_subnet_id
+  storage_blob_private_dns_zone_id = var.existing_private_dns_zones.storage_blob
+  storage_file_private_dns_zone_id = var.existing_private_dns_zones.storage_file
+
   location            = var.location
   resource_group_name = azurerm_resource_group.this.name
   tags                = local.tags
@@ -195,21 +195,21 @@ module "storage" {
 module "function" {
   source = "./modules/function"
 
-  function_app_name               = var.function_app_name != "" ? var.function_app_name : "func-${local.resource_token}"
-  service_plan_name               = "plan-func-${local.resource_token}"
-  storage_account_name            = module.storage.storage_account_name
-  storage_account_access_key      = module.storage.primary_access_key
-  vnet_integration_enabled        = var.function_vnet_integration_enabled
-  function_subnet_id              = module.networking.function_app_subnet_id
-  app_insights_connection_string  = module.monitoring.function_app_insights_connection_string
-  app_insights_key                = module.monitoring.function_app_insights_instrumentation_key
-  
+  function_app_name              = var.function_app_name != "" ? var.function_app_name : "func-${local.resource_token}"
+  service_plan_name              = "plan-func-${local.resource_token}"
+  storage_account_name           = module.storage.storage_account_name
+  storage_account_access_key     = module.storage.primary_access_key
+  vnet_integration_enabled       = var.function_vnet_integration_enabled
+  function_subnet_id             = module.networking.function_app_subnet_id
+  app_insights_connection_string = module.monitoring.function_app_insights_connection_string
+  app_insights_key               = module.monitoring.function_app_insights_instrumentation_key
+
   app_settings = {
-    "AI_FOUNDRY_ENDPOINT"     = try(module.foundry.foundry_endpoints[0], "")
-    "COSMOS_DB_ENDPOINT"      = module.cosmos.cosmos_account_name
-    "KEY_VAULT_URI"           = module.key_vault.key_vault_uri
+    "AI_FOUNDRY_ENDPOINT" = try(module.foundry.foundry_endpoints[0], "")
+    "COSMOS_DB_ENDPOINT"  = module.cosmos.cosmos_account_name
+    "KEY_VAULT_URI"       = module.key_vault.key_vault_uri
   }
-  
+
   location            = var.location
   resource_group_name = azurerm_resource_group.this.name
   tags                = local.tags
@@ -219,20 +219,20 @@ module "function" {
 module "eventhub" {
   source = "./modules/eventhub"
 
-  namespace_name                   = var.event_hub_namespace_name != "" ? var.event_hub_namespace_name : "evhns-${local.resource_token}"
-  sku                              = var.event_hub_sku
-  capacity                         = var.event_hub_capacity_units
-  auto_inflate_enabled             = var.event_hub_auto_inflate_enabled
-  maximum_throughput_units         = var.event_hub_maximum_throughput_units
-  zone_redundant                   = var.enable_zone_redundancy
-  public_network_access_enabled    = !var.enable_private_endpoints
-  disable_local_auth               = var.disable_local_auth
-  usage_hub_name                   = var.usage_event_hub_name
-  pii_hub_name                     = var.pii_event_hub_name
-  enable_private_endpoints         = var.enable_private_endpoints
-  private_endpoint_name            = "pe-eventhub-${local.resource_token}"
-  private_endpoint_subnet_id       = module.networking.private_endpoint_subnet_id
-  eventhub_private_dns_zone_id     = var.existing_private_dns_zones.event_hub
+  namespace_name                = var.event_hub_namespace_name != "" ? var.event_hub_namespace_name : "evhns-${local.resource_token}"
+  sku                           = var.event_hub_sku
+  capacity                      = var.event_hub_capacity_units
+  auto_inflate_enabled          = var.event_hub_auto_inflate_enabled
+  maximum_throughput_units      = var.event_hub_maximum_throughput_units
+  zone_redundant                = var.enable_zone_redundancy
+  public_network_access_enabled = !var.enable_private_endpoints
+  disable_local_auth            = var.disable_local_auth
+  usage_hub_name                = var.usage_event_hub_name
+  pii_hub_name                  = var.pii_event_hub_name
+  enable_private_endpoints      = var.enable_private_endpoints
+  private_endpoint_name         = "pe-eventhub-${local.resource_token}"
+  private_endpoint_subnet_id    = module.networking.private_endpoint_subnet_id
+  eventhub_private_dns_zone_id  = var.existing_private_dns_zones.event_hub
 
   location            = var.location
   resource_group_name = azurerm_resource_group.this.name
@@ -265,7 +265,7 @@ module "apim" {
   resource_group_name = azurerm_resource_group.this.name
   tags                = local.tags
   enable_telemetry    = var.enable_telemetry
-  
+
   depends_on = [
     module.eventhub
   ]
@@ -275,11 +275,11 @@ module "apim" {
 module "logic_app" {
   source = "./modules/logic-app"
 
-  logic_app_name         = var.usage_logic_app_name != "" ? var.usage_logic_app_name : "logic-${local.resource_token}"
-  cosmos_account_name    = module.cosmos.cosmos_account_name
-  cosmos_account_id      = module.cosmos.cosmos_account_id
-  eventhub_namespace_id  = module.eventhub.eventhub_namespace_id
-  
+  logic_app_name        = var.usage_logic_app_name != "" ? var.usage_logic_app_name : "logic-${local.resource_token}"
+  cosmos_account_name   = module.cosmos.cosmos_account_name
+  cosmos_account_id     = module.cosmos.cosmos_account_id
+  eventhub_namespace_id = module.eventhub.eventhub_namespace_id
+
   location            = var.location
   resource_group_name = azurerm_resource_group.this.name
   tags                = local.tags

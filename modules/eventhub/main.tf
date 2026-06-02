@@ -10,7 +10,7 @@ resource "azurerm_eventhub_namespace" "this" {
   public_network_access_enabled = var.public_network_access_enabled
   local_authentication_enabled  = !var.disable_local_auth
   minimum_tls_version           = "1.2"
-  
+
   dynamic "network_rulesets" {
     for_each = !var.public_network_access_enabled ? [1] : []
     content {
@@ -46,7 +46,7 @@ resource "azurerm_eventhub_namespace_authorization_rule" "apim" {
   name                = "apim-send"
   namespace_name      = azurerm_eventhub_namespace.this.name
   resource_group_name = var.resource_group_name
-  
+
   listen = false
   send   = true
   manage = false

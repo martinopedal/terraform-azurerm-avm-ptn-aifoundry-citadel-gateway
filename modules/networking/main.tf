@@ -12,9 +12,9 @@ module "vnet" {
   location            = var.location
   resource_group_name = var.resource_group_name
   address_space       = [var.vnet_address_prefix]
-  
-  tags                = var.tags
-  enable_telemetry    = var.enable_telemetry
+
+  tags             = var.tags
+  enable_telemetry = var.enable_telemetry
 
   # Subnets will be created separately for better control over NSG/delegation
   subnets = {}
@@ -202,11 +202,11 @@ resource "azurerm_network_security_group" "agent" {
 # Route table for APIM subnet (only for new VNet)
 # cost: Route tables are free
 resource "azurerm_route_table" "apim" {
-  count                = var.create_new_vnet ? 1 : 0
-  name                 = var.apim_route_table_name
-  location             = var.location
-  resource_group_name  = var.resource_group_name
-  tags                 = var.tags
+  count               = var.create_new_vnet ? 1 : 0
+  name                = var.apim_route_table_name
+  location            = var.location
+  resource_group_name = var.resource_group_name
+  tags                = var.tags
 }
 
 # Subnets (only for new VNet)

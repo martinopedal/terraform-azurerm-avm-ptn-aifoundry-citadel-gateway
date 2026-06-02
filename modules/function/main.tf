@@ -4,7 +4,7 @@ resource "azurerm_service_plan" "this" {
   resource_group_name = var.resource_group_name
   location            = var.location
   os_type             = "Linux"
-  sku_name            = "Y1"  # Consumption
+  sku_name            = "Y1" # Consumption
   tags                = var.tags
 }
 # Function App (Python 3.11)
@@ -15,25 +15,25 @@ resource "azurerm_linux_function_app" "this" {
   service_plan_id            = azurerm_service_plan.this.id
   storage_account_name       = var.storage_account_name
   storage_account_access_key = var.storage_account_access_key
-  
+
   identity {
     type = "SystemAssigned"
   }
-  
+
   site_config {
     application_stack {
       python_version = "3.11"
     }
-    vnet_route_all_enabled = var.vnet_integration_enabled
+    vnet_route_all_enabled                 = var.vnet_integration_enabled
     application_insights_connection_string = var.app_insights_connection_string
     application_insights_key               = var.app_insights_key
   }
-  
+
   app_settings = merge({
-    "FUNCTIONS_WORKER_RUNTIME"       = "python"
+    "FUNCTIONS_WORKER_RUNTIME"           = "python"
     "PYTHON_ISOLATE_WORKER_DEPENDENCIES" = "1"
   }, var.app_settings)
-  
+
   tags = var.tags
 }
 # VNet integration

@@ -1,14 +1,14 @@
 # Storage Account for Function App and Logic App
 resource "azurerm_storage_account" "this" {
-  name                     = var.storage_account_name
-  resource_group_name      = var.resource_group_name
-  location                 = var.location
-  account_tier             = "Standard"
-  account_replication_type = var.account_replication_type
-  account_kind             = "StorageV2"
-  min_tls_version          = "TLS1_2"
+  name                          = var.storage_account_name
+  resource_group_name           = var.resource_group_name
+  location                      = var.location
+  account_tier                  = "Standard"
+  account_replication_type      = var.account_replication_type
+  account_kind                  = "StorageV2"
+  min_tls_version               = "TLS1_2"
   public_network_access_enabled = var.public_network_access_enabled
-  tags                     = var.tags
+  tags                          = var.tags
 }
 resource "azurerm_storage_container" "function_deployments" {
   name                  = "function-deployments"

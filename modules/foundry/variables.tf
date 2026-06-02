@@ -8,12 +8,12 @@ variable "foundry_instances" {
 
 variable "model_deployments" {
   type = list(object({
-    name             = string
-    aiservice_index  = number
-    sku              = string
-    capacity         = number
-    publisher        = string
-    version          = string
+    name            = string
+    aiservice_index = number
+    sku             = string
+    capacity        = number
+    publisher       = string
+    version         = string
   }))
   default = []
 }
