@@ -173,7 +173,58 @@ module "cosmos" {
 # PHASE 3: AI Gateway (APIM + Gateway Core + API Center)
 # ============================================================================
 
-# Placeholder: Modules will be added in Phase 3
+# Storage Account
+module "storage" {
+  source = "./modules/storage"
+
+  storage_account_name              = var.storage_account_name != "" ? var.storage_account_name : "st${replace(local.resource_token, "-", "")}"
+  account_replication_type          = var.storage_account_replication_type
+  public_network_access_enabled     = var.storage_account_public_access == "Enabled"
+  enable_private_endpoints          = var.enable_private_endpoints
+  private_endpoint_subnet_id        = module.networking.private_endpoint_subnet_id
+  storage_blob_private_dns_zone_id  = var.existing_private_dns_zones.storage_blob
+  storage_file_private_dns_zone_id  = var.existing_private_dns_zones.storage_file
+  
+  location            = var.location
+  resource_group_name = azurerm_resource_group.this.name
+  tags                = local.tags
+}
+
+# Function App
+module "function" {
+  source = "./modules/function"
+
+  function_app_name               = var.function_app_name != "" ? var.function_app_name : "func-${local.resource_token}"
+  service_plan_name               = "plan-func-${local.resource_token}"
+  storage_account_name            = module.storage.storage_account_name
+  storage_account_access_key      = module.storage.primary_access_key
+  vnet_integration_enabled        = var.function_vnet_integration_enabled
+  function_subnet_id              = module.networking.function_app_subnet_id
+  app_insights_connection_string  = module.monitoring.function_app_insights_connection_string
+  app_insights_key                = module.monitoring.function_app_insights_instrumentation_key
+  
+  app_settings = {
+    "AI_FOUNDRY_ENDPOINT"     = try(module.foundry.foundry_endpoints[0], "")
+    "COSMOS_DB_ENDPOINT"      = module.cosmos.cosmos_account_name
+    "KEY_VAULT_URI"           = module.key_vault.key_vault_uri
+  }
+  
+  location            = var.location
+  resource_group_name = azurerm_resource_group.this.name
+  tags                = local.tags
+}
+
+# Logic App (Usage Ingestion) - stub for Phase 3 validation
+module "logic_app" {
+  source = "./modules/logic-app"
+
+  logic_app_name      = var.usage_logic_app_name != "" ? var.usage_logic_app_name : "logic-${local.resource_token}"
+  location            = var.location
+  resource_group_name = azurerm_resource_group.this.name
+  tags                = local.tags
+}
+
+# APIM - deferred to next iteration (stub only)
 
 # ============================================================================
 # PHASE 4: Usage Ingestion + Redis

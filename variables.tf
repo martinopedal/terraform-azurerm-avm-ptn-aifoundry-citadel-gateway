@@ -691,3 +691,35 @@ variable "enable_telemetry" {
   description = "Enable telemetry for AVM modules."
   default     = true
 }
+
+
+# Phase 3 additional variables
+variable "function_app_name" {
+  type        = string
+  description = "Function app name (leave empty for auto-generated)"
+  default     = ""
+}
+
+variable "function_vnet_integration_enabled" {
+  type        = bool
+  description = "Enable VNet integration for Function App"
+  default     = true
+}
+
+variable "storage_account_replication_type" {
+  type        = string
+  description = "Storage account replication type"
+  default     = "LRS"
+}
+
+variable "storage_account_public_access" {
+  type        = string
+  description = "Storage account public access (Enabled/Disabled)"
+  default     = "Disabled"
+}
+
+variable "usage_logic_app_name" {
+  type        = string
+  description = "Usage ingestion Logic App name (alias for usage_processing_logic_app_name)"
+  default     = ""
+}
