@@ -399,9 +399,12 @@ variable "enable_unified_ai_api" {
 # COMPUTE SKU & SIZE
 # ============================================================================
 
+# cost: APIM Developer (~$50/mo) supports VNet injection + AI gateway policies + logger/diagnostics.
+# Does NOT support multi-region, zone redundancy, or Premium-only features (cache, VPN).
+# For production: StandardV2 (~$700/mo) or Premium (~$2.8k/mo) via variable override.
 variable "apim_sku" {
   type        = string
-  description = "API Management service SKU."
+  description = "API Management service SKU. Developer is cheapest for demo (VNet-capable, ~$50/mo). StandardV2/Premium for production."
   default     = "Developer"
   validation {
     condition     = contains(["Developer", "Premium", "StandardV2", "PremiumV2"], var.apim_sku)
@@ -415,21 +418,66 @@ variable "apim_sku_units" {
   default     = 1
 }
 
+# cost: Event Hub Basic (no capture, 1-day retention, ~$10/mo base) or Standard (7-day, ~$25/mo base).
+# 1 TU = ~1 MB/s ingress, 2 MB/s egress. For demo usage ingestion (low volume), 1 TU is sufficient.
+variable "event_hub_sku" {
+  type        = string
+  description = "Event Hub SKU. Basic (~$10/mo) for demo, Standard (~$25/mo) for capture/longer retention."
+  default     = "Standard"
+  validation {
+    condition     = contains(["Basic", "Standard", "Premium"], var.event_hub_sku)
+    error_message = "Event Hub SKU must be Basic, Standard, or Premium."
+  }
+}
+
 variable "event_hub_capacity_units" {
   type        = number
-  description = "Event Hub capacity units."
+  description = "Event Hub capacity units (throughput units). 1 TU = 1 MB/s in, 2 MB/s out. Default 1 for demo."
   default     = 1
+}
+
+variable "event_hub_auto_inflate_enabled" {
+  type        = bool
+  description = "Enable auto-inflate for Event Hub (Standard/Premium only). Default OFF for cost control."
+  default     = false
+}
+
+# cost: Cosmos DB serverless (~$0 base, pay-per-RU consumed) is cheapest for demo/low-volume analytics.
+# Provisioned (RU/s) starts at 400 RUs (~$24/mo). Serverless has 5k RU/s burst limit.
+# For demo usage analytics (write-heavy, low query volume), serverless is optimal.
+variable "cosmos_capacity_mode" {
+  type        = string
+  description = "Cosmos DB capacity mode. Serverless (~$0 base, pay-per-RU) for demo, Provisioned for predictable workloads."
+  default     = "serverless"
+  validation {
+    condition     = contains(["serverless", "provisioned"], var.cosmos_capacity_mode)
+    error_message = "Cosmos capacity mode must be serverless or provisioned."
+  }
 }
 
 variable "cosmos_db_rus" {
   type        = number
-  description = "Cosmos DB throughput in Request Units (RUs)."
+  description = "Cosmos DB throughput in Request Units (RUs). Only used when cosmos_capacity_mode = provisioned. Minimum 400."
   default     = 400
+}
+
+# cost: Logic App Consumption (pay-per-execution, ~$0.000025/action) vs Standard/WS1 (~$200/mo base + compute).
+# The Bicep accelerator uses WorkflowStandard (WS1) for VNet integration + private endpoints.
+# RESEARCH NEEDED: Can usage ingestion workflow run on Consumption? If yes, change default.
+# For now, keeping WS1 as Bicep does, but flagging for Phase 4 review.
+variable "logic_apps_sku" {
+  type        = string
+  description = "Logic Apps SKU. WS1 (WorkflowStandard, ~$200/mo) for VNet integration. Consumption for cheapest (if no VNet needed)."
+  default     = "WS1"
+  validation {
+    condition     = contains(["WS1", "WS2", "WS3"], var.logic_apps_sku)
+    error_message = "Logic Apps SKU must be WS1, WS2, or WS3 for WorkflowStandard."
+  }
 }
 
 variable "logic_apps_sku_capacity_units" {
   type        = number
-  description = "Logic Apps SKU capacity units."
+  description = "Logic Apps SKU capacity units (WorkflowStandard only). Default 1 for demo."
   default     = 1
 }
 
@@ -453,10 +501,12 @@ variable "key_vault_sku_name" {
   }
 }
 
+# cost: Redis Balanced_B1 (~$200/mo, 1 GB cache, 1k ops/s) is cheapest for semantic cache demo.
+# Balanced_B10 (~$2k/mo, 10 GB) is overkill for demo. Default to B1 when enabled.
 variable "redis_sku_name" {
   type        = string
-  description = "Redis Enterprise / Azure Managed Redis SKU name."
-  default     = "Balanced_B10"
+  description = "Redis Enterprise / Azure Managed Redis SKU name. Balanced_B1 (~$200/mo, 1 GB) is cheapest for demo."
+  default     = "Balanced_B1"
 }
 
 variable "redis_sku_capacity" {
@@ -497,20 +547,24 @@ variable "ai_foundry_instances" {
   default     = []
 }
 
+# cost: Model deployments default to Standard (pay-per-token) with minimal capacity (1k-10k TPM).
+# gpt-4o-mini is cheapest ($0.15/1M input, $0.60/1M output) vs gpt-4o ($2.50/1M input, $10/1M output).
+# GlobalStandard = global load balancing, same price as Standard.
+# For demo, use gpt-4o-mini + text-embedding-3-small (if embeddings needed).
 variable "ai_foundry_models_config" {
   type = list(object({
     name                  = string
     publisher             = string
     version               = string
-    sku                   = string
-    capacity              = number
+    sku                   = string # Standard or GlobalStandard (pay-per-token)
+    capacity              = number # TPM quota: 1k-10k for demo, 100k+ for prod
     retirement_date       = optional(string, "")
     api_version           = optional(string, "2024-02-15-preview")
     timeout               = optional(number, 120)
     inference_api_version = optional(string, "")
     aiservice_index       = optional(number)
   }))
-  description = "AI Foundry model deployments configuration."
+  description = "AI Foundry model deployments. Default to Standard (pay-per-token) + minimal capacity (1k-10k TPM) + cheap models (gpt-4o-mini)."
   default     = []
 }
 

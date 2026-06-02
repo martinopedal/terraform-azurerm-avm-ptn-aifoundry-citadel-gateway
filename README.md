@@ -16,6 +16,12 @@ This module deploys the **Citadel Governance Hub** — a centralized AI Gateway 
 - **Private networking** with bring-your-own VNet support
 - **Managed Redis** (opt-in) for semantic caching
 
+### 💰 Cost-Optimized for Demo
+
+**Default demo cost: ~$360/mo** (Redis OFF, Cosmos serverless, APIM Developer, 1 TU Event Hub, WS1 Logic App)
+
+See [`COST_RUNBOOK.md`](./COST_RUNBOOK.md) for detailed SKU decisions, monthly estimates, and production upgrade paths.
+
 ## Status
 
 ⚠️ **WORK IN PROGRESS** — This module is under active development.
