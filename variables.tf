@@ -744,3 +744,111 @@ variable "pii_event_hub_name" {
   description = "Name of the Event Hub for PII tracking (anonymization pipeline)."
   default     = "pii"
 }
+
+# ============================================================================
+# APIM AI GATEWAY API CONFIGURATION
+# ============================================================================
+
+variable "inference_api_name" {
+  type        = string
+  description = "Name of the Universal LLM API in APIM."
+  default     = "inference-api"
+}
+
+variable "inference_api_description" {
+  type        = string
+  description = "Description of the Universal LLM API."
+  default     = "Inferencing API for language models"
+}
+
+variable "inference_api_display_name" {
+  type        = string
+  description = "Display name of the Universal LLM API."
+  default     = "Inference API"
+}
+
+variable "inference_api_path" {
+  type        = string
+  description = "Base path for the inference API in APIM (endpoint path appended automatically)."
+  default     = "inference"
+}
+
+variable "inference_api_type" {
+  type        = string
+  description = "The inference API type - determines endpoint path and OpenAPI spec."
+  default     = "AzureOpenAI"
+  validation {
+    condition     = contains(["AzureOpenAI", "AzureAI", "OpenAI", "OpenAIV1"], var.inference_api_type)
+    error_message = "inference_api_type must be one of: AzureOpenAI, AzureAI, OpenAI, OpenAIV1"
+  }
+}
+
+variable "allow_subscription_key" {
+  type        = bool
+  description = "Allow the use of subscription key for the inference API (set to false for JWT-only auth)."
+  default     = true
+}
+
+variable "azure_monitor_log_settings" {
+  type = object({
+    frontend = object({
+      request = object({
+        headers = list(string)
+        body    = object({ bytes = number })
+      })
+      response = object({
+        headers = list(string)
+        body    = object({ bytes = number })
+      })
+    })
+    backend = object({
+      request = object({
+        headers = list(string)
+        body    = object({ bytes = number })
+      })
+      response = object({
+        headers = list(string)
+        body    = object({ bytes = number })
+      })
+    })
+    large_language_model = object({
+      logs = string
+      requests = object({
+        messages          = string
+        max_size_in_bytes = number
+      })
+      responses = object({
+        messages          = string
+        max_size_in_bytes = number
+      })
+    })
+  })
+  description = "Azure Monitor diagnostic log settings for the inference API."
+  default = {
+    frontend = {
+      request  = { headers = [], body = { bytes = 0 } }
+      response = { headers = [], body = { bytes = 0 } }
+    }
+    backend = {
+      request  = { headers = [], body = { bytes = 0 } }
+      response = { headers = [], body = { bytes = 0 } }
+    }
+    large_language_model = {
+      logs      = "enabled"
+      requests  = { messages = "all", max_size_in_bytes = 262144 }
+      responses = { messages = "all", max_size_in_bytes = 262144 }
+    }
+  }
+}
+
+variable "app_insights_log_settings" {
+  type = object({
+    headers = list(string)
+    body    = object({ bytes = number })
+  })
+  description = "Application Insights diagnostic log settings."
+  default = {
+    headers = ["Content-type", "User-agent", "x-ms-region", "x-ratelimit-remaining-tokens", "x-ratelimit-remaining-requests"]
+    body    = { bytes = 0 }
+  }
+}

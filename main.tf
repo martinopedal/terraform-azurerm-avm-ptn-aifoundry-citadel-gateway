@@ -271,6 +271,34 @@ module "apim" {
   ]
 }
 
+# APIM AI Gateway (APIs, Backends, Policy Fragments)
+module "apim_gateway" {
+  source = "./modules/apim-gateway"
+
+  apim_service_name                = module.apim.apim_name
+  resource_group_name              = azurerm_resource_group.this.name
+  apim_managed_identity_client_id  = module.identities.apim_identity_client_id
+  llm_backend_config               = local.llm_backend_config
+  configure_circuit_breaker        = true
+  inference_api_name               = var.inference_api_name
+  inference_api_description        = var.inference_api_description
+  inference_api_display_name       = var.inference_api_display_name
+  inference_api_path               = var.inference_api_path
+  inference_api_type               = var.inference_api_type
+  allow_subscription_key           = var.allow_subscription_key
+  apim_logger_id                   = module.apim.apim_logger_id
+  app_insights_id                  = module.monitoring.apim_app_insights_id
+  app_insights_instrumentation_key = module.monitoring.apim_app_insights_instrumentation_key
+
+  azure_monitor_log_settings = var.azure_monitor_log_settings
+  app_insights_log_settings  = var.app_insights_log_settings
+
+  depends_on = [
+    module.apim,
+    module.foundry
+  ]
+}
+
 # Logic App (Usage Ingestion - Consumption tier with Cosmos RBAC)
 module "logic_app" {
   source = "./modules/logic-app"
