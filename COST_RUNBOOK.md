@@ -84,13 +84,50 @@
 **Total PE cost**: ~$70/mo  
 **Research**: Confirmed all resources support private endpoints.
 
+## Security & Reliability Toggles (Added 2025-01-XX)
+
+Martin's directive: add clean security + reliability toggles, cheap/permissive defaults, opt-in to harden.
+
+### Security Toggles
+
+| Variable | Default | Cost Impact | Production Flip |
+|----------|---------|-------------|-----------------|
+| `enable_private_endpoints` | `true` | +$70/mo (10 PEs x $7.30) | Keep TRUE |
+| `disable_local_auth` | `false` | Free | TRUE (AAD-only) |
+| `enable_customer_managed_keys` | `false` | ~$0.03/10k KV ops (minimal) | TRUE (CMEK for compliance) |
+
+**Notes**:
+- **Private endpoints**: Default TRUE per ALZ private-by-default posture. Set FALSE to save ~$70/mo if public access acceptable for non-prod.
+- **Disable local auth**: Requires AAD tokens for Cosmos/Storage/Event Hub/KV. Default FALSE (allow keys) for demo simplicity. Production: TRUE for zero-trust.
+- **Customer-managed keys (CMEK)**: Encrypt data with KV-managed keys. Default FALSE for demo simplicity. Production: TRUE for compliance (e.g., HIPAA, FedRAMP).
+
+### Reliability Toggles
+
+| Variable | Default | Cost Impact | SKU Coupling |
+|----------|---------|-------------|--------------|
+| `enable_zone_redundancy` | `false` | +$650-2750/mo (SKU bumps) | Requires APIM StandardV2/Premium, Event Hub Premium, Storage ZRS, Cosmos multi-region |
+| `log_analytics_retention_days` | `30` | 31-365 days = +$0.12/GB/month | N/A |
+| `cosmos_backup_type` | `Periodic` (7-day) | Continuous (30-day) requires provisioned mode | Couples to `cosmos_capacity_mode = provisioned` |
+| `storage_soft_delete_days` | `7` | Free (1-365 days) | N/A |
+
+**Notes**:
+- **Zone redundancy**: Default FALSE (single-instance, no AZ). Production: TRUE + bump SKUs:
+  - APIM Developer → StandardV2 = +$650/mo
+  - Event Hub Standard → Premium = +$625/mo
+  - Storage LRS → ZRS = +$0.002/GB (minimal)
+  - Cosmos single-region → multi-region = pay per additional region
+- **Cosmos backup**: Periodic (7-day) included with serverless. Continuous (30-day) requires provisioned mode + additional cost.
+- **Storage soft delete**: Free for 1-365 days. Default 7 days for demo, extend to 30-90 days for production data retention compliance.
+
 ## Cost Optimization Opportunities (Post-Demo)
 
 1. **Logic App**: Switch WS1 → Consumption if no VNet integration needed = -$200/mo
-2. **APIM**: Keep Developer for non-prod environments; only upgrade to StandardV2/Premium for production SLA
+2. **APIM**: Keep Developer for non-prod environments; only upgrade to StandardV2/Premium for production SLA + zone redundancy
 3. **Redis**: Keep OFF unless semantic cache hit rate justifies $200/mo cost
 4. **Model capacity**: Start with 1k TPM, scale up only if rate-limited
 5. **Cosmos DB**: Monitor RU consumption; if >1M RU/day sustained, switch to provisioned autoscale for cost savings
+6. **Private endpoints**: Disable for non-prod if public access acceptable = -$70/mo
+7. **Zone redundancy**: Only enable for production workloads requiring 99.99% SLA (adds +$650-2750/mo in SKU upgrades)
 
 ## Phase-by-Phase Cost Tracking
 
@@ -105,12 +142,26 @@
 
 ```hcl
 # Production overrides (example)
+# Cost (SKU bumps)
 apim_sku                   = "StandardV2"      # +$650/mo
 cosmos_capacity_mode       = "provisioned"     # +$24/mo (400 RUs)
 event_hub_capacity_units   = 2                 # +$25/mo
 logic_apps_sku             = "WS2"             # +$200/mo (more compute)
 enable_managed_redis       = true              # +$200/mo
 redis_sku_name             = "Balanced_B10"    # +$1800/mo vs B1
+
+# Security (hardening, minimal cost)
+enable_private_endpoints          = true       # Already default, ~$70/mo
+disable_local_auth                = true       # FREE, requires AAD-only
+enable_customer_managed_keys      = true       # ~$0.03/10k KV ops (minimal)
+
+# Reliability (requires SKU bumps)
+enable_zone_redundancy            = true       # +$650-2750/mo (SKU bumps needed)
+log_analytics_retention_days      = 90         # +$0.12/GB/month for 31-90 days
+cosmos_backup_type                = "Continuous" # Requires provisioned mode
+storage_soft_delete_days          = 30         # FREE
+
+# Model config for production volume
 ai_foundry_models_config = [
   {
     name     = "gpt-4o"
@@ -119,6 +170,15 @@ ai_foundry_models_config = [
   }
 ]
 ```
+
+**Note on Zone Redundancy + SKU Coupling**:
+When `enable_zone_redundancy = true`, you **MUST** also upgrade SKUs:
+- APIM: `apim_sku = "StandardV2"` or `"PremiumV2"` (Developer doesn't support zones)
+- Event Hub: `event_hub_sku = "Premium"` (Standard doesn't support zones)
+- Storage: Automatically uses ZRS when zone redundancy enabled (LRS → ZRS, minimal cost delta)
+- Cosmos: Requires multi-region configuration (not covered by this simple toggle; manual config needed)
+
+**If you enable zone redundancy without upgrading SKUs, deployment will fail.** The module will validate and error with guidance.
 
 ---
 

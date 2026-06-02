@@ -604,6 +604,85 @@ variable "entra_client_secret" {
 }
 
 # ============================================================================
+# SECURITY TOGGLES (Cheap/Permissive Default, Opt-In to Harden)
+# ============================================================================
+
+# cost: Private endpoints = $7.30/mo each. 10 PEs = ~$70/mo. Default TRUE per ALZ private-by-default,
+# but disabling saves ~$70/mo if public network access is acceptable for demo.
+variable "enable_private_endpoints" {
+  type        = bool
+  description = "Enable private endpoints for all resources (Foundry, Key Vault, Cosmos, Event Hub, Storage, APIM v2, Redis). Adds ~$7.30/mo per PE (~$70/mo total). Default TRUE per ALZ private-by-default posture. Set FALSE to save cost in non-prod."
+  default     = true
+}
+
+# cost: Free. Disables key-based auth, requires AAD tokens. Default FALSE for demo simplicity (allow keys).
+# Production: TRUE for zero-trust posture.
+variable "disable_local_auth" {
+  type        = bool
+  description = "Disable local/key-based authentication on supported resources (Cosmos, Storage, Event Hub, Key Vault). Requires AAD-only access. Default FALSE (allow keys) for demo simplicity. Production: TRUE."
+  default     = false
+}
+
+# cost: Extra Key Vault operations (~$0.03/10k ops, minimal). Default FALSE for demo simplicity.
+# Production: TRUE for compliance (CMEK = customer-managed encryption keys).
+variable "enable_customer_managed_keys" {
+  type        = bool
+  description = "Enable customer-managed encryption keys (CMEK) via Key Vault for supported resources (Cosmos, Storage, Event Hub). Adds Key Vault ops cost (~$0.03/10k ops, minimal). Default FALSE. Production: TRUE for compliance."
+  default     = false
+}
+
+# ============================================================================
+# RELIABILITY TOGGLES (Cheap Single-Instance Default, Opt-In to Harden)
+# ============================================================================
+
+# cost: Zone redundancy requires SKU bump for most resources:
+# - APIM: Developer (no zones) -> StandardV2/PremiumV2 (+$650-2750/mo)
+# - Event Hub: Standard (no zones) -> Premium (+$625/mo)
+# - Storage: LRS (no zones) -> ZRS (+minimal, ~$0.002/GB delta)
+# - Cosmos: single-region -> multi-region + zone redundancy (pay per region + RUs)
+# Default FALSE. Production: TRUE + bump SKUs.
+variable "enable_zone_redundancy" {
+  type        = bool
+  description = "Enable Availability Zone redundancy where supported. Requires SKU bumps: APIM Developer->StandardV2 (+$650/mo), Event Hub Standard->Premium (+$625/mo), Storage LRS->ZRS (minimal), Cosmos multi-region. Default FALSE. Production: TRUE + upgrade SKUs."
+  default     = false
+}
+
+# cost: Free (30-day retention). 31-365 days = $0.12/GB/month extra.
+# Already defined above, but documenting here for clarity.
+variable "log_analytics_retention_days" {
+  type        = number
+  description = "Log Analytics workspace data retention in days. 30 days = free. 31-365 days = $0.12/GB/month. Default 30 for demo."
+  default     = 30
+  validation {
+    condition     = var.log_analytics_retention_days >= 30 && var.log_analytics_retention_days <= 730
+    error_message = "Log Analytics retention must be between 30 and 730 days."
+  }
+}
+
+# cost: Cosmos serverless has 7-day point-in-time restore included. Continuous backup (30-day) requires provisioned mode.
+# Default = periodic (7-day) for serverless. Production: continuous (30-day) with provisioned mode.
+variable "cosmos_backup_type" {
+  type        = string
+  description = "Cosmos DB backup type. Periodic (7-day, included with serverless) or Continuous (30-day, requires provisioned mode). Default Periodic for demo cost."
+  default     = "Periodic"
+  validation {
+    condition     = contains(["Periodic", "Continuous"], var.cosmos_backup_type)
+    error_message = "Cosmos backup type must be Periodic or Continuous."
+  }
+}
+
+# cost: Storage soft delete is free (7-day default). Extend for compliance.
+variable "storage_soft_delete_days" {
+  type        = number
+  description = "Storage Account blob soft delete retention days. Free for 1-365 days. Default 7 for demo. Production: 30-90 days."
+  default     = 7
+  validation {
+    condition     = var.storage_soft_delete_days >= 1 && var.storage_soft_delete_days <= 365
+    error_message = "Storage soft delete retention must be between 1 and 365 days."
+  }
+}
+
+# ============================================================================
 # AVM TELEMETRY
 # ============================================================================
 
