@@ -517,7 +517,7 @@ locals {
   }
 
   api_config   = local.inference_api_type_map[var.inference_api_type]
-  api_path     = "${var.inference_api_path}/${local.api_config.endpoint_path}"
+  api_path     = var.inference_api_path != "" ? "${var.inference_api_path}/${local.api_config.endpoint_path}" : local.api_config.endpoint_path
   openapi_spec = jsondecode(file("${path.module}/openapi/${local.api_config.openapi_spec}"))
 }
 
