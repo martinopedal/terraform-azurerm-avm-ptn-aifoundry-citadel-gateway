@@ -7,7 +7,7 @@ locals {
     user_assigned_resource_ids = var.apim_managed_identity_id != "" ? [var.apim_managed_identity_id] : []
   }
 
-  create_eventhub_logger    = var.event_hub_name != "" && var.event_hub_connection_string != ""
+  create_eventhub_logger    = var.event_hub_name != ""
   create_appinsights_logger = var.app_insights_instrumentation_key != ""
   create_tenant_named_value = var.tenant_id != ""
 }
