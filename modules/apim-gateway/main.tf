@@ -69,13 +69,8 @@ resource "azapi_resource" "llm_backend" {
 
       # Managed identity auth for Azure backends
       credentials = {
-        managedIdentity = each.value.auth_scheme == "managedIdentity" ? {
-          clientId = var.apim_managed_identity_client_id
-          resource = "https://cognitiveservices.azure.com"
-        } : null
-        header = each.value.auth_scheme == "managedIdentity" ? {
-          "x-ms-client-id" = [var.apim_managed_identity_client_id]
-        } : {}
+        managedIdentity = each.value.auth_scheme == "managedIdentity" ? local.managed_identity_credentials : null
+        header          = each.value.auth_scheme == "managedIdentity" ? local.managed_identity_header : {}
       }
 
       # TLS validation
@@ -95,6 +90,17 @@ resource "azapi_resource" "llm_backend" {
 #####################################################
 
 locals {
+  managed_identity_credentials = var.apim_managed_identity_client_id != "" ? {
+    clientId = var.apim_managed_identity_client_id
+    resource = "https://cognitiveservices.azure.com"
+    } : {
+    resource = "https://cognitiveservices.azure.com"
+  }
+
+  managed_identity_header = var.apim_managed_identity_client_id != "" ? {
+    "x-ms-client-id" = [var.apim_managed_identity_client_id]
+  } : {}
+
   # Normalize backend details - extract model names from supported_models
   normalized_backends = [
     for backend_id, backend in azapi_resource.llm_backend : {

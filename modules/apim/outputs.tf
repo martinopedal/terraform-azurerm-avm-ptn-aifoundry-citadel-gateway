@@ -11,10 +11,10 @@ output "apim_gateway_url" {
 }
 
 output "apim_principal_id" {
-  value = try(module.apim.system_assigned_mi_principal_id, "")
+  value = try(module.apim.workspace_identity.principal_id, "")
 }
 
 output "apim_logger_id" {
   description = "Azure Monitor logger resource ID"
-  value       = azurerm_api_management_logger.eventhub.id
+  value       = try(azurerm_api_management_logger.eventhub[0].id, "")
 }
