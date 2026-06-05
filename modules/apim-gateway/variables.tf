@@ -11,6 +11,7 @@ variable "resource_group_name" {
 variable "apim_managed_identity_client_id" {
   description = "Client ID of the user-assigned managed identity for APIM backend authentication"
   type        = string
+  default     = ""
 }
 
 variable "llm_backend_config" {
