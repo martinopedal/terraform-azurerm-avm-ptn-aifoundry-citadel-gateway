@@ -36,7 +36,7 @@ module "apim" {
 }
 
 resource "azapi_update_resource" "apim_v2_vnet_integration" {
-  count       = local.apim_is_v2_sku && var.apim_network_type != "None" && var.apim_subnet_id != "" ? 1 : 0
+  count       = local.apim_is_v2_sku && var.apim_network_type != "None" ? 1 : 0
   type        = "Microsoft.ApiManagement/service@2024-06-01-preview"
   resource_id = module.apim.resource_id
 
