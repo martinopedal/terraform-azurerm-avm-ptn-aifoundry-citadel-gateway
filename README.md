@@ -16,6 +16,16 @@ This module deploys the **Citadel Governance Hub** — a centralized AI Gateway 
 - **Private networking** with bring-your-own VNet support
 - **Managed Redis** (opt-in) for semantic caching
 
+### 💰 Cost-Optimized for Demo
+
+**Default demo cost: ~$360/mo** (Redis OFF, Cosmos serverless, APIM Developer, 1 TU Event Hub, WS1 Logic App, private endpoints ON)
+
+**Cheap/permissive defaults, opt-in to harden**:
+- **Security**: Private endpoints ON (ALZ default), local auth ON (keys allowed), CMEK OFF
+- **Reliability**: Single-instance (no zone redundancy), 30-day Log Analytics retention, 7-day storage soft delete
+
+See [`COST_RUNBOOK.md`](./COST_RUNBOOK.md) for detailed SKU decisions, security/reliability toggles, monthly estimates, and production upgrade paths.
+
 ## Status
 
 ⚠️ **WORK IN PROGRESS** — This module is under active development.
@@ -125,8 +135,23 @@ See [`variables.tf`](./variables.tf) for the full list of input variables.
 | `use_existing_vnet` | Use an existing VNet instead of creating a new one | `bool` | `false` | no |
 | `ai_foundry_instances` | AI Foundry instances configuration | `list(object)` | `[]` | yes |
 | `ai_foundry_models_config` | AI Foundry model deployments | `list(object)` | `[]` | yes |
-| `enable_managed_redis` | Enable Azure Managed Redis for semantic caching | `bool` | `false` | no |
-| `entra_auth` | Enable Entra ID authentication | `bool` | `true` | no |
+| **Cost Levers** | | | | |
+| `apim_sku` | APIM SKU (Developer ~$50/mo, StandardV2 ~$700/mo, Premium ~$2.8k/mo) | `string` | `Developer` | no |
+| `cosmos_capacity_mode` | Cosmos capacity (serverless ~$0 base, provisioned $24+/mo) | `string` | `serverless` | no |
+| `enable_managed_redis` | Enable Redis for semantic caching (~$200/mo) | `bool` | `false` | no |
+| **Security Toggles** | | | | |
+| `enable_private_endpoints` | Enable private endpoints (~$70/mo, ALZ default) | `bool` | `true` | no |
+| `disable_local_auth` | Disable key-based auth, require AAD (free, zero-trust) | `bool` | `false` | no |
+| `enable_customer_managed_keys` | Enable CMEK via Key Vault (compliance, minimal cost) | `bool` | `false` | no |
+| **Reliability Toggles** | | | | |
+| `enable_zone_redundancy` | Enable AZ redundancy (requires SKU bumps, +$650-2750/mo) | `bool` | `false` | no |
+| `log_analytics_retention_days` | LAW retention (30 days free, 31+ = $0.12/GB/month) | `number` | `30` | no |
+
+**SKU Coupling for Zone Redundancy**:
+When `enable_zone_redundancy = true`, you **MUST** also set:
+- `apim_sku = "StandardV2"` or `"PremiumV2"` (Developer doesn't support zones)
+- Event Hub SKU bumped to Premium internally (or set `event_hub_sku = "Premium"`)
+- Storage automatically uses ZRS (no manual config needed)
 
 ## Outputs
 

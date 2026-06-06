@@ -399,9 +399,12 @@ variable "enable_unified_ai_api" {
 # COMPUTE SKU & SIZE
 # ============================================================================
 
+# cost: APIM Developer (~$50/mo) supports VNet injection + AI gateway policies + logger/diagnostics.
+# Does NOT support multi-region, zone redundancy, or Premium-only features (cache, VPN).
+# For production: StandardV2 (~$700/mo) or Premium (~$2.8k/mo) via variable override.
 variable "apim_sku" {
   type        = string
-  description = "API Management service SKU."
+  description = "API Management service SKU. Developer is cheapest for demo (VNet-capable, ~$50/mo). StandardV2/Premium for production."
   default     = "Developer"
   validation {
     condition     = contains(["Developer", "Premium", "StandardV2", "PremiumV2"], var.apim_sku)
@@ -415,21 +418,66 @@ variable "apim_sku_units" {
   default     = 1
 }
 
+# cost: Event Hub Basic (no capture, 1-day retention, ~$10/mo base) or Standard (7-day, ~$25/mo base).
+# 1 TU = ~1 MB/s ingress, 2 MB/s egress. For demo usage ingestion (low volume), 1 TU is sufficient.
+variable "event_hub_sku" {
+  type        = string
+  description = "Event Hub SKU. Basic (~$10/mo) for demo, Standard (~$25/mo) for capture/longer retention."
+  default     = "Standard"
+  validation {
+    condition     = contains(["Basic", "Standard", "Premium"], var.event_hub_sku)
+    error_message = "Event Hub SKU must be Basic, Standard, or Premium."
+  }
+}
+
 variable "event_hub_capacity_units" {
   type        = number
-  description = "Event Hub capacity units."
+  description = "Event Hub capacity units (throughput units). 1 TU = 1 MB/s in, 2 MB/s out. Default 1 for demo."
   default     = 1
+}
+
+variable "event_hub_auto_inflate_enabled" {
+  type        = bool
+  description = "Enable auto-inflate for Event Hub (Standard/Premium only). Default OFF for cost control."
+  default     = false
+}
+
+# cost: Cosmos DB serverless (~$0 base, pay-per-RU consumed) is cheapest for demo/low-volume analytics.
+# Provisioned (RU/s) starts at 400 RUs (~$24/mo). Serverless has 5k RU/s burst limit.
+# For demo usage analytics (write-heavy, low query volume), serverless is optimal.
+variable "cosmos_capacity_mode" {
+  type        = string
+  description = "Cosmos DB capacity mode. Serverless (~$0 base, pay-per-RU) for demo, Provisioned for predictable workloads."
+  default     = "serverless"
+  validation {
+    condition     = contains(["serverless", "provisioned"], var.cosmos_capacity_mode)
+    error_message = "Cosmos capacity mode must be serverless or provisioned."
+  }
 }
 
 variable "cosmos_db_rus" {
   type        = number
-  description = "Cosmos DB throughput in Request Units (RUs)."
+  description = "Cosmos DB throughput in Request Units (RUs). Only used when cosmos_capacity_mode = provisioned. Minimum 400."
   default     = 400
+}
+
+# cost: Logic App Consumption (pay-per-execution, ~$0.000025/action) vs Standard/WS1 (~$200/mo base + compute).
+# The Bicep accelerator uses WorkflowStandard (WS1) for VNet integration + private endpoints.
+# RESEARCH NEEDED: Can usage ingestion workflow run on Consumption? If yes, change default.
+# For now, keeping WS1 as Bicep does, but flagging for Phase 4 review.
+variable "logic_apps_sku" {
+  type        = string
+  description = "Logic Apps SKU. WS1 (WorkflowStandard, ~$200/mo) for VNet integration. Consumption for cheapest (if no VNet needed)."
+  default     = "WS1"
+  validation {
+    condition     = contains(["WS1", "WS2", "WS3"], var.logic_apps_sku)
+    error_message = "Logic Apps SKU must be WS1, WS2, or WS3 for WorkflowStandard."
+  }
 }
 
 variable "logic_apps_sku_capacity_units" {
   type        = number
-  description = "Logic Apps SKU capacity units."
+  description = "Logic Apps SKU capacity units (WorkflowStandard only). Default 1 for demo."
   default     = 1
 }
 
@@ -453,10 +501,12 @@ variable "key_vault_sku_name" {
   }
 }
 
+# cost: Redis Balanced_B1 (~$200/mo, 1 GB cache, 1k ops/s) is cheapest for semantic cache demo.
+# Balanced_B10 (~$2k/mo, 10 GB) is overkill for demo. Default to B1 when enabled.
 variable "redis_sku_name" {
   type        = string
-  description = "Redis Enterprise / Azure Managed Redis SKU name."
-  default     = "Balanced_B10"
+  description = "Redis Enterprise / Azure Managed Redis SKU name. Balanced_B1 (~$200/mo, 1 GB) is cheapest for demo."
+  default     = "Balanced_B1"
 }
 
 variable "redis_sku_capacity" {
@@ -497,20 +547,24 @@ variable "ai_foundry_instances" {
   default     = []
 }
 
+# cost: Model deployments default to Standard (pay-per-token) with minimal capacity (1k-10k TPM).
+# gpt-4o-mini is cheapest ($0.15/1M input, $0.60/1M output) vs gpt-4o ($2.50/1M input, $10/1M output).
+# GlobalStandard = global load balancing, same price as Standard.
+# For demo, use gpt-4o-mini + text-embedding-3-small (if embeddings needed).
 variable "ai_foundry_models_config" {
   type = list(object({
     name                  = string
     publisher             = string
     version               = string
-    sku                   = string
-    capacity              = number
+    sku                   = string # Standard or GlobalStandard (pay-per-token)
+    capacity              = number # TPM quota: 1k-10k for demo, 100k+ for prod
     retirement_date       = optional(string, "")
     api_version           = optional(string, "2024-02-15-preview")
     timeout               = optional(number, 120)
     inference_api_version = optional(string, "")
     aiservice_index       = optional(number)
   }))
-  description = "AI Foundry model deployments configuration."
+  description = "AI Foundry model deployments. Default to Standard (pay-per-token) + minimal capacity (1k-10k TPM) + cheap models (gpt-4o-mini)."
   default     = []
 }
 
@@ -550,6 +604,85 @@ variable "entra_client_secret" {
 }
 
 # ============================================================================
+# SECURITY TOGGLES (Cheap/Permissive Default, Opt-In to Harden)
+# ============================================================================
+
+# cost: Private endpoints = $7.30/mo each. 10 PEs = ~$70/mo. Default TRUE per ALZ private-by-default,
+# but disabling saves ~$70/mo if public network access is acceptable for demo.
+variable "enable_private_endpoints" {
+  type        = bool
+  description = "Enable private endpoints for all resources (Foundry, Key Vault, Cosmos, Event Hub, Storage, APIM v2, Redis). Adds ~$7.30/mo per PE (~$70/mo total). Default TRUE per ALZ private-by-default posture. Set FALSE to save cost in non-prod."
+  default     = true
+}
+
+# cost: Free. Disables key-based auth, requires AAD tokens. Default FALSE for demo simplicity (allow keys).
+# Production: TRUE for zero-trust posture.
+variable "disable_local_auth" {
+  type        = bool
+  description = "Disable local/key-based authentication on supported resources (Cosmos, Storage, Event Hub, Key Vault). Requires AAD-only access. Default FALSE (allow keys) for demo simplicity. Production: TRUE."
+  default     = false
+}
+
+# cost: Extra Key Vault operations (~$0.03/10k ops, minimal). Default FALSE for demo simplicity.
+# Production: TRUE for compliance (CMEK = customer-managed encryption keys).
+variable "enable_customer_managed_keys" {
+  type        = bool
+  description = "Enable customer-managed encryption keys (CMEK) via Key Vault for supported resources (Cosmos, Storage, Event Hub). Adds Key Vault ops cost (~$0.03/10k ops, minimal). Default FALSE. Production: TRUE for compliance."
+  default     = false
+}
+
+# ============================================================================
+# RELIABILITY TOGGLES (Cheap Single-Instance Default, Opt-In to Harden)
+# ============================================================================
+
+# cost: Zone redundancy requires SKU bump for most resources:
+# - APIM: Developer (no zones) -> StandardV2/PremiumV2 (+$650-2750/mo)
+# - Event Hub: Standard (no zones) -> Premium (+$625/mo)
+# - Storage: LRS (no zones) -> ZRS (+minimal, ~$0.002/GB delta)
+# - Cosmos: single-region -> multi-region + zone redundancy (pay per region + RUs)
+# Default FALSE. Production: TRUE + bump SKUs.
+variable "enable_zone_redundancy" {
+  type        = bool
+  description = "Enable Availability Zone redundancy where supported. Requires SKU bumps: APIM Developer->StandardV2 (+$650/mo), Event Hub Standard->Premium (+$625/mo), Storage LRS->ZRS (minimal), Cosmos multi-region. Default FALSE. Production: TRUE + upgrade SKUs."
+  default     = false
+}
+
+# cost: Free (30-day retention). 31-365 days = $0.12/GB/month extra.
+# Already defined above, but documenting here for clarity.
+variable "log_analytics_retention_days" {
+  type        = number
+  description = "Log Analytics workspace data retention in days. 30 days = free. 31-365 days = $0.12/GB/month. Default 30 for demo."
+  default     = 30
+  validation {
+    condition     = var.log_analytics_retention_days >= 30 && var.log_analytics_retention_days <= 730
+    error_message = "Log Analytics retention must be between 30 and 730 days."
+  }
+}
+
+# cost: Cosmos serverless has 7-day point-in-time restore included. Continuous backup (30-day) requires provisioned mode.
+# Default = periodic (7-day) for serverless. Production: continuous (30-day) with provisioned mode.
+variable "cosmos_backup_type" {
+  type        = string
+  description = "Cosmos DB backup type. Periodic (7-day, included with serverless) or Continuous (30-day, requires provisioned mode). Default Periodic for demo cost."
+  default     = "Periodic"
+  validation {
+    condition     = contains(["Periodic", "Continuous"], var.cosmos_backup_type)
+    error_message = "Cosmos backup type must be Periodic or Continuous."
+  }
+}
+
+# cost: Storage soft delete is free (7-day default). Extend for compliance.
+variable "storage_soft_delete_days" {
+  type        = number
+  description = "Storage Account blob soft delete retention days. Free for 1-365 days. Default 7 for demo. Production: 30-90 days."
+  default     = 7
+  validation {
+    condition     = var.storage_soft_delete_days >= 1 && var.storage_soft_delete_days <= 365
+    error_message = "Storage soft delete retention must be between 1 and 365 days."
+  }
+}
+
+# ============================================================================
 # AVM TELEMETRY
 # ============================================================================
 
@@ -557,4 +690,165 @@ variable "enable_telemetry" {
   type        = bool
   description = "Enable telemetry for AVM modules."
   default     = true
+}
+
+
+# Phase 3 additional variables
+variable "function_app_name" {
+  type        = string
+  description = "Function app name (leave empty for auto-generated)"
+  default     = ""
+}
+
+variable "function_vnet_integration_enabled" {
+  type        = bool
+  description = "Enable VNet integration for Function App"
+  default     = true
+}
+
+variable "storage_account_replication_type" {
+  type        = string
+  description = "Storage account replication type"
+  default     = "LRS"
+}
+
+variable "storage_account_public_access" {
+  type        = string
+  description = "Storage account public access (Enabled/Disabled)"
+  default     = "Disabled"
+}
+
+variable "usage_logic_app_name" {
+  type        = string
+  description = "Usage ingestion Logic App name (alias for usage_processing_logic_app_name)"
+  default     = ""
+}
+
+
+
+
+variable "event_hub_maximum_throughput_units" {
+  type        = number
+  description = "Maximum throughput units when auto-inflate is enabled (Standard SKU only)."
+  default     = 1
+}
+
+variable "usage_event_hub_name" {
+  type        = string
+  description = "Name of the Event Hub for usage tracking (ingestion from APIM)."
+  default     = "usage"
+}
+
+variable "pii_event_hub_name" {
+  type        = string
+  description = "Name of the Event Hub for PII tracking (anonymization pipeline)."
+  default     = "pii"
+}
+
+# ============================================================================
+# APIM AI GATEWAY API CONFIGURATION
+# ============================================================================
+
+variable "inference_api_name" {
+  type        = string
+  description = "Name of the Universal LLM API in APIM."
+  default     = "inference-api"
+}
+
+variable "inference_api_description" {
+  type        = string
+  description = "Description of the Universal LLM API."
+  default     = "Inferencing API for language models"
+}
+
+variable "inference_api_display_name" {
+  type        = string
+  description = "Display name of the Universal LLM API."
+  default     = "Inference API"
+}
+
+variable "inference_api_path" {
+  type        = string
+  description = "Base path for the inference API in APIM (endpoint path appended automatically)."
+  default     = "inference"
+}
+
+variable "inference_api_type" {
+  type        = string
+  description = "The inference API type - determines endpoint path and OpenAPI spec."
+  default     = "AzureOpenAI"
+  validation {
+    condition     = contains(["AzureOpenAI", "AzureAI", "OpenAI", "OpenAIV1"], var.inference_api_type)
+    error_message = "inference_api_type must be one of: AzureOpenAI, AzureAI, OpenAI, OpenAIV1"
+  }
+}
+
+variable "allow_subscription_key" {
+  type        = bool
+  description = "Allow the use of subscription key for the inference API (set to false for JWT-only auth)."
+  default     = true
+}
+
+variable "azure_monitor_log_settings" {
+  type = object({
+    frontend = object({
+      request = object({
+        headers = list(string)
+        body    = object({ bytes = number })
+      })
+      response = object({
+        headers = list(string)
+        body    = object({ bytes = number })
+      })
+    })
+    backend = object({
+      request = object({
+        headers = list(string)
+        body    = object({ bytes = number })
+      })
+      response = object({
+        headers = list(string)
+        body    = object({ bytes = number })
+      })
+    })
+    large_language_model = object({
+      logs = string
+      requests = object({
+        messages          = string
+        max_size_in_bytes = number
+      })
+      responses = object({
+        messages          = string
+        max_size_in_bytes = number
+      })
+    })
+  })
+  description = "Azure Monitor diagnostic log settings for the inference API."
+  default = {
+    frontend = {
+      request  = { headers = [], body = { bytes = 0 } }
+      response = { headers = [], body = { bytes = 0 } }
+    }
+    backend = {
+      request  = { headers = [], body = { bytes = 0 } }
+      response = { headers = [], body = { bytes = 0 } }
+    }
+    large_language_model = {
+      logs      = "enabled"
+      requests  = { messages = "all", max_size_in_bytes = 262144 }
+      responses = { messages = "all", max_size_in_bytes = 262144 }
+    }
+  }
+}
+
+variable "app_insights_log_settings" {
+  type = object({
+    headers = list(string)
+    body    = object({ bytes = number })
+  })
+  description = "Application Insights diagnostic log settings."
+  default = {
+    headers = ["Content-type", "User-agent", "x-ms-region", "x-ratelimit-remaining-tokens", "x-ratelimit-remaining-requests"]
+    body    = { bytes = 0 }
+  }
 }
