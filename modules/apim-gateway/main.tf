@@ -580,7 +580,7 @@ resource "azapi_resource" "universal_llm_api_policy" {
 
 # API Diagnostics (Azure Monitor)
 resource "azapi_resource" "universal_llm_api_diagnostics_azmon" {
-  count = var.apim_logger_id != "" ? 1 : 0
+  count = var.enable_azure_monitor_diagnostics ? 1 : 0
 
   type      = "Microsoft.ApiManagement/service/apis/diagnostics@2024-06-01-preview"
   name      = "azuremonitor"

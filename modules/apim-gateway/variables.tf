@@ -87,6 +87,12 @@ variable "apim_logger_id" {
   default     = ""
 }
 
+variable "enable_azure_monitor_diagnostics" {
+  description = "Create Azure Monitor API diagnostics. Use this when apim_logger_id is supplied from a resource whose ID is unknown until apply."
+  type        = bool
+  default     = false
+}
+
 variable "app_insights_id" {
   description = "Resource ID of Application Insights for diagnostics (leave empty to disable)"
   type        = string

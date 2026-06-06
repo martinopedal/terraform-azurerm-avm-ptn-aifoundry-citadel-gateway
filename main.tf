@@ -287,6 +287,7 @@ module "apim_gateway" {
   inference_api_type               = var.inference_api_type
   allow_subscription_key           = var.allow_subscription_key
   apim_logger_id                   = module.apim.apim_logger_id
+  enable_azure_monitor_diagnostics = true
   app_insights_id                  = module.monitoring.apim_app_insights_id
   app_insights_instrumentation_key = module.monitoring.apim_app_insights_instrumentation_key
 
