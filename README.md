@@ -30,6 +30,10 @@ See [`COST_RUNBOOK.md`](./COST_RUNBOOK.md) for detailed SKU decisions, security/
 
 The `modules/function` submodule defaults to the legacy Linux Consumption (`Y1`) + storage key pattern for compatibility. For policy-restricted estates where storage shared keys are disabled, use a Dedicated plan SKU such as `B1` with `storage_uses_managed_identity = true`, `content_share_force_disabled = true`, and `storage_account_id` so the module assigns the Function App identity the required host-storage data roles.
 
+### Existing subnet delegation helper
+
+The `modules/existing-subnet-delegation` submodule patches an existing subnet with a service delegation using AzAPI. Use it when a workload must integrate with an existing spoke subnet, such as delegating a Foundry integration subnet to `Microsoft.Web/serverFarms` before creating a Function App regional VNet integration.
+
 ## Status
 
 ⚠️ **WORK IN PROGRESS** — This module is under active development.
