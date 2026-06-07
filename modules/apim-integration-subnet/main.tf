@@ -68,9 +68,10 @@ locals {
 }
 
 resource "azapi_resource" "subnet" {
-  type      = "Microsoft.Network/virtualNetworks/subnets@2024-05-01"
-  name      = var.name
-  parent_id = data.azurerm_virtual_network.this.id
+  type                      = "Microsoft.Network/virtualNetworks/subnets@2024-05-01"
+  name                      = var.name
+  parent_id                 = data.azurerm_virtual_network.this.id
+  schema_validation_enabled = false
   body = {
     properties = local.subnet_properties
   }
