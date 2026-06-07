@@ -10,13 +10,6 @@ resource "azurerm_storage_account" "this" {
   public_network_access_enabled = var.public_network_access_enabled
   shared_access_key_enabled     = var.shared_access_key_enabled
   tags                          = var.tags
-
-  lifecycle {
-    ignore_changes = [
-      # Ignore changes to shared_access_key_enabled to prevent data plane access issues during apply
-      shared_access_key_enabled
-    ]
-  }
 }
 resource "azurerm_storage_container" "function_deployments" {
   name                  = "function-deployments"
