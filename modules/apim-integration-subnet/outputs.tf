@@ -1,9 +1,9 @@
 output "subnet_id" {
   description = "Resource ID of the APIM integration subnet."
-  value       = azurerm_subnet.this.id
+  value       = azapi_resource.subnet.id
 }
 
 output "subnet_name" {
   description = "Name of the APIM integration subnet."
-  value       = azurerm_subnet.this.name
+  value       = azapi_resource.subnet.name
 }

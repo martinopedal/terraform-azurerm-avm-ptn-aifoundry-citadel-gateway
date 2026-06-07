@@ -36,42 +36,42 @@ data "azurerm_virtual_network" "this" {
   resource_group_name = var.resource_group_name
 }
 
-resource "azurerm_subnet" "this" {
-  name                 = var.name
-  resource_group_name  = var.resource_group_name
-  virtual_network_name = var.virtual_network_name
-  address_prefixes     = var.address_prefixes
+locals {
+  effective_network_security_group_id = var.network_security_group_id != null ? var.network_security_group_id : (
+    var.create_nsg ? azurerm_network_security_group.default[0].id : null
+  )
 
-  delegation {
-    name = "Microsoft.Web-serverFarms"
-    service_delegation {
-      name    = "Microsoft.Web/serverFarms"
-      actions = ["Microsoft.Network/virtualNetworks/subnets/action"]
-    }
+  subnet_properties = merge(
+    {
+      addressPrefixes = var.address_prefixes
+      delegations = [
+        {
+          name = "Microsoft.Web-serverFarms"
+          properties = {
+            serviceName = "Microsoft.Web/serverFarms"
+            actions     = ["Microsoft.Network/virtualNetworks/subnets/action"]
+          }
+        }
+      ]
+    },
+    local.effective_network_security_group_id != null ? {
+      networkSecurityGroup = {
+        id = local.effective_network_security_group_id
+      }
+    } : {},
+    var.route_table_id != null ? {
+      routeTable = {
+        id = var.route_table_id
+      }
+    } : {}
+  )
+}
+
+resource "azapi_resource" "subnet" {
+  type      = "Microsoft.Network/virtualNetworks/subnets@2024-05-01"
+  name      = var.name
+  parent_id = data.azurerm_virtual_network.this.id
+  body = {
+    properties = local.subnet_properties
   }
-}
-
-# Associate BYO NSG if provided
-resource "azurerm_subnet_network_security_group_association" "byo" {
-  count = var.network_security_group_id != null ? 1 : 0
-
-  subnet_id                 = azurerm_subnet.this.id
-  network_security_group_id = var.network_security_group_id
-}
-
-# Associate created NSG if creating one
-resource "azurerm_subnet_network_security_group_association" "created" {
-  count = var.create_nsg && var.network_security_group_id == null ? 1 : 0
-
-  subnet_id                 = azurerm_subnet.this.id
-  network_security_group_id = azurerm_network_security_group.default[0].id
-
-  depends_on = [azurerm_network_security_group.default]
-}
-
-resource "azurerm_subnet_route_table_association" "this" {
-  count = var.route_table_id != null ? 1 : 0
-
-  subnet_id      = azurerm_subnet.this.id
-  route_table_id = var.route_table_id
 }
