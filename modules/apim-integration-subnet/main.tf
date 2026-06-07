@@ -51,17 +51,22 @@ resource "azurerm_subnet" "this" {
   }
 }
 
-locals {
-  nsg_id = var.network_security_group_id != null ? var.network_security_group_id : (
-    var.create_nsg ? azurerm_network_security_group.default[0].id : null
-  )
-}
-
-resource "azurerm_subnet_network_security_group_association" "this" {
-  count = local.nsg_id != null ? 1 : 0
+# Associate BYO NSG if provided
+resource "azurerm_subnet_network_security_group_association" "byo" {
+  count = var.network_security_group_id != null ? 1 : 0
 
   subnet_id                 = azurerm_subnet.this.id
-  network_security_group_id = local.nsg_id
+  network_security_group_id = var.network_security_group_id
+}
+
+# Associate created NSG if creating one
+resource "azurerm_subnet_network_security_group_association" "created" {
+  count = var.create_nsg && var.network_security_group_id == null ? 1 : 0
+
+  subnet_id                 = azurerm_subnet.this.id
+  network_security_group_id = azurerm_network_security_group.default[0].id
+
+  depends_on = [azurerm_network_security_group.default]
 }
 
 resource "azurerm_subnet_route_table_association" "this" {
