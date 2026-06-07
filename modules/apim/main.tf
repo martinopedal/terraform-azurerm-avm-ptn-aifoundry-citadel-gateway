@@ -28,7 +28,7 @@ module "apim" {
   # but the service reads back the requested network type. Keep this aligned to
   # avoid ForceNew drift when adopting an APIM created by a partial apply.
   virtual_network_type      = var.apim_network_type
-  virtual_network_subnet_id = !local.apim_is_v2_sku && var.apim_network_type != "None" ? var.apim_subnet_id : null
+  virtual_network_subnet_id = var.apim_network_type != "None" ? var.apim_subnet_id : null
 
   # Managed identity
   managed_identities = local.apim_managed_identities
