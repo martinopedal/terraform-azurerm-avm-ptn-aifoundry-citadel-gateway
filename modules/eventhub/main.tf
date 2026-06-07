@@ -6,7 +6,7 @@ resource "azurerm_eventhub_namespace" "this" {
   sku                           = var.sku
   capacity                      = var.capacity
   auto_inflate_enabled          = var.auto_inflate_enabled
-  maximum_throughput_units      = var.maximum_throughput_units
+  maximum_throughput_units      = var.auto_inflate_enabled ? var.maximum_throughput_units : null
   public_network_access_enabled = var.public_network_access_enabled
   local_authentication_enabled  = !var.disable_local_auth
   minimum_tls_version           = "1.2"
