@@ -11,6 +11,6 @@ output "primary_blob_endpoint" {
 }
 
 output "primary_access_key" {
-  value     = azurerm_storage_account.this.primary_access_key
+  value     = var.shared_access_key_enabled ? try(azurerm_storage_account.this.primary_access_key, null) : null
   sensitive = true
 }

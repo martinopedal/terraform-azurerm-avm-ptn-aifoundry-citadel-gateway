@@ -1,3 +1,41 @@
+# Create a default NSG if none provided
+resource "azurerm_network_security_group" "default" {
+  count               = var.create_nsg && var.network_security_group_id == null ? 1 : 0
+  name                = var.nsg_name != null ? var.nsg_name : "${var.name}-nsg"
+  location            = data.azurerm_virtual_network.this.location
+  resource_group_name = var.resource_group_name
+
+  # Minimal rules for APIM Standard v2 outbound integration
+  security_rule {
+    name                       = "AllowVnetOutbound"
+    priority                   = 100
+    direction                  = "Outbound"
+    access                     = "Allow"
+    protocol                   = "*"
+    source_port_range          = "*"
+    destination_port_range     = "*"
+    source_address_prefix      = "VirtualNetwork"
+    destination_address_prefix = "VirtualNetwork"
+  }
+
+  security_rule {
+    name                       = "AllowInternetOutbound"
+    priority                   = 110
+    direction                  = "Outbound"
+    access                     = "Allow"
+    protocol                   = "*"
+    source_port_range          = "*"
+    destination_port_range     = "*"
+    source_address_prefix      = "VirtualNetwork"
+    destination_address_prefix = "Internet"
+  }
+}
+
+data "azurerm_virtual_network" "this" {
+  name                = var.virtual_network_name
+  resource_group_name = var.resource_group_name
+}
+
 resource "azurerm_subnet" "this" {
   name                 = var.name
   resource_group_name  = var.resource_group_name
@@ -13,11 +51,17 @@ resource "azurerm_subnet" "this" {
   }
 }
 
+locals {
+  nsg_id = var.network_security_group_id != null ? var.network_security_group_id : (
+    var.create_nsg ? azurerm_network_security_group.default[0].id : null
+  )
+}
+
 resource "azurerm_subnet_network_security_group_association" "this" {
-  count = var.network_security_group_id != null ? 1 : 0
+  count = local.nsg_id != null ? 1 : 0
 
   subnet_id                 = azurerm_subnet.this.id
-  network_security_group_id = var.network_security_group_id
+  network_security_group_id = local.nsg_id
 }
 
 resource "azurerm_subnet_route_table_association" "this" {

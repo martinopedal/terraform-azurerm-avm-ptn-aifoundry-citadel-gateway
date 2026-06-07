@@ -117,9 +117,10 @@ data "azapi_resource_action" "redis_keys" {
 # ============================================================================
 
 locals {
-  redis_hostname    = jsondecode(azapi_resource.redis_database.output).properties.hostName
-  redis_port        = jsondecode(azapi_resource.redis_database.output).properties.port
-  redis_primary_key = jsondecode(data.azapi_resource_action.redis_keys.output).primaryKey
+  # AzAPI output is already a parsed object, no jsondecode needed
+  redis_hostname    = try(azapi_resource.redis_database.output.properties.hostName, "")
+  redis_port        = try(azapi_resource.redis_database.output.properties.port, 10000)
+  redis_primary_key = try(data.azapi_resource_action.redis_keys.output.primaryKey, "")
 
   redis_connection_string = "${local.redis_hostname}:${local.redis_port},password=${local.redis_primary_key},ssl=true"
 }

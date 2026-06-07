@@ -12,6 +12,12 @@ variable "public_network_access_enabled" {
   default = false
 }
 
+variable "shared_access_key_enabled" {
+  type        = bool
+  description = "Enable shared access key authentication. Set to false to disable key-based access."
+  default     = true
+}
+
 variable "enable_private_endpoints" {
   type    = bool
   default = true
