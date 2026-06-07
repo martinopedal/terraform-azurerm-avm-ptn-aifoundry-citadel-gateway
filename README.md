@@ -26,6 +26,10 @@ This module deploys the **Citadel Governance Hub** — a centralized AI Gateway 
 
 See [`COST_RUNBOOK.md`](./COST_RUNBOOK.md) for detailed SKU decisions, security/reliability toggles, monthly estimates, and production upgrade paths.
 
+### Function host storage modes
+
+The `modules/function` submodule defaults to the legacy Linux Consumption (`Y1`) + storage key pattern for compatibility. For policy-restricted estates where storage shared keys are disabled, use a Dedicated plan SKU such as `B1` with `storage_uses_managed_identity = true`, `content_share_force_disabled = true`, and `storage_account_id` so the module assigns the Function App identity the required host-storage data roles.
+
 ## Status
 
 ⚠️ **WORK IN PROGRESS** — This module is under active development.
