@@ -14,9 +14,9 @@
         - Authorization header: Bearer token for JWT authentication
         - jwtRequired (optional): Set by product policy to "true" to enforce JWT validation in addition to API key.
                                     When not set or "false", JWT validation is skipped even if a Bearer token is present.
-        - jwtAudience (optional): Custom audience override. Falls back to {{JWT-AppRegistrationId}} named value
-        - jwtIssuer (optional): Custom issuer override. Falls back to {{JWT-Issuer}} named value
-        - jwtOpenIdConfigUrl (optional): Custom OpenID config URL override. Falls back to {{JWT-OpenIdConfigUrl}} named value
+        - jwtAudience (optional): Custom audience override. Empty by default.
+        - jwtIssuer (optional): Custom issuer override. Empty by default.
+        - jwtOpenIdConfigUrl (optional): Custom OpenID config URL override. Empty by default.
         - requiredRoles (optional): Set by product policy. Comma-separated list of required app roles (e.g., "Models.Read,Agent.Read").
                                     If set, at least one role must be present in the JWT 'roles' claim. If empty/unset, no role check is performed.
 
@@ -26,11 +26,8 @@
         - user-id: String - User identifier from JWT claim or subscription name
         - jwt-roles: String - Comma-separated list of app roles from the JWT token (empty if no JWT or no roles claim)
 
-        Upstream Dependencies (required only when JWT is enabled and no custom overrides are set):
-        - APIM named values:
-          - JWT-OpenIdConfigUrl: OpenID Connect discovery endpoint (e.g., https://login.microsoftonline.com/{tenant}/v2.0/.well-known/openid-configuration)
-          - JWT-Issuer: Expected token issuer (e.g., https://login.microsoftonline.com/{tenant}/v2.0)
-          - JWT-AppRegistrationId: Expected audience claim (e.g., api://{client-id})
+        Upstream Dependencies:
+        - Product policies must set jwtAudience, jwtIssuer, and jwtOpenIdConfigUrl before setting jwtRequired=true.
     -->
 
     <!-- Determine authentication method used in request -->
@@ -72,11 +69,10 @@
     <!-- Set default user-id from subscription -->
     <set-variable name="user-id" value="@(context.Subscription?.Name ?? "anonymous")" />
 
-    <!-- Pre-load APIM named values as fallback defaults for JWT settings -->
-    <!-- Product policies can override these by setting jwtAudience, jwtIssuer, jwtOpenIdConfigUrl -->
-    <set-variable name="_nv-jwt-audience" value="{{JWT-AppRegistrationId}}" />
-    <set-variable name="_nv-jwt-openid-config" value="{{JWT-OpenIdConfigUrl}}" />
-    <set-variable name="_nv-jwt-issuer" value="{{JWT-Issuer}}" />
+    <!-- Product policies can set jwtAudience, jwtIssuer, and jwtOpenIdConfigUrl before enabling JWT. -->
+    <set-variable name="_nv-jwt-audience" value="@(String.Empty)" />
+    <set-variable name="_nv-jwt-openid-config" value="@(String.Empty)" />
+    <set-variable name="_nv-jwt-issuer" value="@(String.Empty)" />
 
     <!-- JWT validation (only when jwtRequired is set to "true" by product policy) -->
     <choose>
