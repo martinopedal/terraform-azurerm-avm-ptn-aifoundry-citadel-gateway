@@ -24,8 +24,10 @@ module "apim" {
   sku_name                      = var.apim_sku
   public_network_access_enabled = var.public_network_access_enabled
 
-  # Standard v2 outbound VNet integration is applied through AzAPI below.
-  virtual_network_type      = local.apim_is_v2_sku ? "None" : var.apim_network_type
+  # Standard v2 outbound VNet integration details are patched through AzAPI below,
+  # but the service reads back the requested network type. Keep this aligned to
+  # avoid ForceNew drift when adopting an APIM created by a partial apply.
+  virtual_network_type      = var.apim_network_type
   virtual_network_subnet_id = !local.apim_is_v2_sku && var.apim_network_type != "None" ? var.apim_subnet_id : null
 
   # Managed identity
