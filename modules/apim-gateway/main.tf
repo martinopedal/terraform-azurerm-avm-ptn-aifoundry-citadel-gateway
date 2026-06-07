@@ -338,6 +338,21 @@ resource "azapi_resource" "frag_set_llm_requested_model" {
   }
 }
 
+# Policy Fragment: Resolve Model Alias
+resource "azapi_resource" "frag_resolve_model_alias" {
+  type      = "Microsoft.ApiManagement/service/policyFragments@2024-06-01-preview"
+  name      = "resolve-model-alias"
+  parent_id = data.azurerm_api_management.apim.id
+
+  body = {
+    properties = {
+      description = "Resolves requested model aliases; no-op when no alias map is configured"
+      format      = "rawxml"
+      value       = file("${path.module}/policies/frag-resolve-model-alias.xml")
+    }
+  }
+}
+
 # Policy Fragment: Set LLM Usage
 resource "azapi_resource" "frag_set_llm_usage" {
   type      = "Microsoft.ApiManagement/service/policyFragments@2024-06-01-preview"
@@ -549,6 +564,7 @@ resource "azapi_resource" "universal_llm_api" {
     azapi_resource.frag_set_backend_authorization,
     azapi_resource.frag_set_target_backend_pool,
     azapi_resource.frag_set_llm_requested_model,
+    azapi_resource.frag_resolve_model_alias,
     azapi_resource.frag_set_llm_usage,
     azapi_resource.frag_security_handler,
     azapi_resource.frag_validate_model_access,
@@ -575,7 +591,24 @@ resource "azapi_resource" "universal_llm_api_policy" {
     }
   }
 
-  depends_on = [azapi_resource.universal_llm_api]
+  depends_on = [
+    azapi_resource.universal_llm_api,
+    azapi_resource.frag_set_backend_pools,
+    azapi_resource.frag_set_backend_authorization,
+    azapi_resource.frag_set_target_backend_pool,
+    azapi_resource.frag_set_llm_requested_model,
+    azapi_resource.frag_resolve_model_alias,
+    azapi_resource.frag_set_llm_usage,
+    azapi_resource.frag_security_handler,
+    azapi_resource.frag_validate_model_access,
+    azapi_resource.frag_get_available_models,
+    azapi_resource.frag_responses_id_security,
+    azapi_resource.frag_responses_id_cache_store,
+    azapi_resource.frag_set_response_headers,
+    azapi_resource.frag_raise_throttling_events,
+    azapi_resource.frag_ai_foundry_compatibility,
+    azapi_resource.frag_strip_backend_headers
+  ]
 }
 
 # API Diagnostics (Azure Monitor)

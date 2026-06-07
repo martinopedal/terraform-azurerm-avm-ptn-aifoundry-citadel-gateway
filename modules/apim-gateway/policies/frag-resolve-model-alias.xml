@@ -1,0 +1,10 @@
+<fragment>
+    <!--
+        Fragment: Resolve Model Alias
+        Purpose: Placeholder for optional model alias resolution.
+
+        The universal policy includes this fragment so deployments can add
+        alias mapping later without changing the API policy. With no alias
+        map configured, the fragment intentionally leaves requestedModel as-is.
+    -->
+</fragment>
